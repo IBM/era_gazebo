@@ -1,0 +1,39 @@
+#!/usr/bin/env python
+
+import sys
+import rospy
+from geometry_msgs.msg import Twist
+from os.path import basename
+
+import bot_actions as ba
+import random
+
+
+def wander(node_name, namespace="r0"):
+    # Starts a new node
+    #random.seed(0) # Causes each robot to make the same movements
+
+    rospy.init_node(node_name, anonymous=True)
+
+    topic_name = '/%s/cmd_vel_mux/input/teleop' % (namespace,)
+    vel_publisher = rospy.Publisher(topic_name, Twist, queue_size=10)
+    rate = rospy.Rate(10)
+
+    actions = ba.bot_actions.values()
+
+    while not rospy.is_shutdown():
+        action_idx = random.randint(0, len(actions) - 1)
+        vel_msg = actions[action_idx]
+        vel_publisher.publish(vel_msg)
+        rate.sleep()
+
+
+if __name__ == '__main__':
+    if len(sys.argv) < 2:
+        print "usage: <script_name> <namespace>"
+    else:
+        try:
+            #Testing our function
+            wander(basename(sys.argv[0]), sys.argv[1])
+        except rospy.ROSInterruptException:
+            pass

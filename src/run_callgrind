@@ -1,0 +1,43 @@
+#!/bin/bash
+
+PROJECT_PATH=$4
+
+source $PROJECT_PATH/era_gazebo/src/script_constants.sh
+
+if [[ "$AUTO" == "yes" ]]; then
+  echo "[$0] Sleeping for $SLEEP_TIME seconds..."
+  sleep $SLEEP_TIME
+fi
+
+bags="$(find "$PROJECT_PATH/bags/era_auto" \
+     -name "bot_$WORKLOAD_TYPE-$WORKLOAD_SIZE*.bag*" \
+     | sort | tr '\n' ' ')"
+
+if [ -z "$bags" ]; then
+    echo "ERROR: No bags found!"
+    exit 1
+fi
+
+echo "[$0] Profiling bags: $bags..."
+
+for bag in $bags
+do
+  if [ ! -e ]; then
+    echo "[$0] ERROR: Could not find bag '$bag'"
+    rosnode kill -a
+    exit 1
+  fi
+done
+
+callgrind_control -i on
+
+for bag in $bags
+do
+  roslaunch era_gazebo workload_playback.launch bag_name:="$bag"
+done
+
+callgrind_control -d
+callgrind_control -i off
+
+echo "[$0] Done"
+rosnode kill -a

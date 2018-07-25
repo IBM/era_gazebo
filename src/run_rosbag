@@ -1,0 +1,32 @@
+#!/bin/bash
+
+PROJECT_PATH=$4
+
+source $PROJECT_PATH/era_gazebo/src/script_constants.sh
+
+mkdir -p $PROFILES_PATH
+
+if [[ "$AUTO" == "yes" ]]; then
+  echo "[$0] Sleeping for $SLEEP_TIME seconds..."
+  sleep $SLEEP_TIME
+fi
+
+echo "[$0] Launching bot_$WORKLOAD_TYPE..."
+rosrun era_gazebo bot_$WORKLOAD_TYPE r0 &
+rosrun era_gazebo bot_$WORKLOAD_TYPE r1 &
+
+echo "[$0] Recording..."
+rosbag record -a --duration=$WORKLOAD_DURATION \
+    -O $PROJECT_PATH/bags/era_auto/bot_$WORKLOAD_TYPE-$WORKLOAD_SIZE \
+    __name:=workload_recorder #\
+    # tf \
+    # /r0/mobile_base/commands/velocity \
+    # /r1/mobile_base/commands/velocity &
+
+echo "[$0] Sleeping for $WORKLOAD_DURATION..."
+sleep $WORKLOAD_DURATION
+
+rosnode kill workload_recorder r0/bot_$WORKLOAD_TYPE r1/bot_$WORKLOAD_TYPE
+
+echo "[$0] Done"
+rosnode kill -a

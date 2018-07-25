@@ -1,0 +1,5 @@
+<launch>
+	<arg name="bag_name" default=""/>
+
+	<node pkg="rosbag" type="play" name="workload_playback" args="-d 0 $(arg bag_name)"/>
+</launch>
