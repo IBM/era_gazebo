@@ -38,26 +38,29 @@ Required for running on a VM:
 
 ## Installation and Usage
 
-Clone ERA from this GitHub repository:
-
-```
-https://github.ibm.com/ajvega/era.git
-```
-
-See <a href="https://help.github.com/enterprise/2.10/user/articles/which-remote-url-should-i-use/#cloning-with-https-urls-recommended" target="_blank">this page</a> if you find issues with the `git clone` command.
-
-Before building the ROS workspace, we need to make sure that the environment is properly setup by first sourcing the environment setup file:
+Before anything else, we need to make sure that the ROS environment is properly setup by first sourcing the environment setup file:
 
 ```
 source /opt/ros/kinetic/setup.bash
 ```
 
-Compile the ROS workspace:
+If not done yet, a catkin workspace has to be created and initialized:
 
 ```
-cd era
+mkdir -p ~/catkin_ws/src
+cd ~/catkin_ws/src
+catkin_init_workspace
+``` 
+
+Clone ERA from this GitHub repository in the `~/catkin_ws/src` folder and build it:
+
+```
+git clone https://github.ibm.com/ERA/era_gazebo.git
+cd ..
 catkin_make
 ```
+
+See <a href="https://help.github.com/enterprise/2.10/user/articles/which-remote-url-should-i-use/#cloning-with-https-urls-recommended" target="_blank">this page</a> if you find issues with the `git clone` command.
 
 Source the workspace, depending on your shell. Example using bash:
 
