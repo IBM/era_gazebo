@@ -1,5 +1,6 @@
 # ERA: EPOCHS Reference Application
 
+
 ## Requirements
 
 ERA requires:
@@ -8,6 +9,7 @@ ERA requires:
 - GNU gcc/g++ 5.4
 - ROS Kinetic and Gazebo 7
 - cmake 3.5.0+
+- Cartographer (automatically installed using the `install_isolated.sh` script explained below)
 
 Required ROS packages:
 - kinetic-desktop-full
@@ -36,36 +38,38 @@ Required for running on a VM:
 - LIBGL_ALWAYS_SOFTWARE=1
 
 
-## Installation and Usage
+## Installation
 
-Before anything else, we need to make sure that the ROS environment is properly setup by first sourcing the environment setup file:
+If not done yet, source the ROS environment setup file:
 
 ```
 source /opt/ros/kinetic/setup.bash
 ```
 
-If not done yet, a catkin workspace has to be created and initialized:
+> In addition to the ERA packages, the `install_isolated.sh` script used in the sections below will automatically install <a href="https://google-cartographer-ros.readthedocs.io/en/latest/#" target="_blank">Cartographer</a>, a library for real-time 2D and 3D simultaneous localization and mapping (SLAM).
+
+### Fresh Install with No Preexisting Catkin Workspace
 
 ```
-mkdir -p ~/catkin_ws/src
-cd ~/catkin_ws/src
+cd ~
+mkdir -p catkin_ws/src
+cd catkin_ws/src
 catkin_init_workspace
-``` 
-
-Clone ERA from this GitHub repository in the `~/catkin_ws/src` folder and build it:
-
-```
 git clone https://github.ibm.com/ERA/era_gazebo.git
-cd ..
-catkin_make
+cd ~/catkin_ws
+./install_isolated.sh
 ```
 
 See <a href="https://help.github.com/enterprise/2.10/user/articles/which-remote-url-should-i-use/#cloning-with-https-urls-recommended" target="_blank">this page</a> if you find issues with the `git clone` command.
 
-Source the workspace, depending on your shell. Example using bash:
+
+### Installation into an Existing Workspace
 
 ```
-source devel/setup.bash
+cd catkin_ws/src
+git clone https://github.ibm.com/ERA/era_gazebo.git
+cd ~/catkin_ws
+./install_isolated.sh
 ```
 
 Launch the workload:

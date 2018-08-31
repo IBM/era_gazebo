@@ -6,9 +6,12 @@ Panels:
       Expanded:
         - /TF1/Frames1
         - /TF1/Tree1
+        - /Map1
         - /Global Map1/Planner1
         - /Local Map1/Planner1
         - /Local Map1/Trajectory Cloud1
+        - /Map3
+        - /Map3/Status1
       Splitter Ratio: 0.5
     Tree Height: 772
   - Class: rviz/Selection
@@ -306,12 +309,12 @@ Visualization Manager:
       Class: rviz/Map
       Color Scheme: map
       Draw Behind: false
-      Enabled: true
+      Enabled: false
       Name: Map
       Topic: /r0/map
       Unreliable: false
       Use Timestamp: false
-      Value: true
+      Value: false
     - Class: rviz/Group
       Displays:
         - Alpha: 0.699999988
@@ -726,21 +729,47 @@ Visualization Manager:
       Class: rviz/Map
       Color Scheme: map
       Draw Behind: false
-      Enabled: true
+      Enabled: false
       Name: Map
       Topic: /r1/map
       Unreliable: false
       Use Timestamp: false
-      Value: true
+      Value: false
     - Alpha: 0.699999988
       Class: rviz/Map
       Color Scheme: map
       Draw Behind: false
       Enabled: true
       Name: Map
-      Topic: /map
+      Topic: /r0/remote_map
       Unreliable: false
       Use Timestamp: false
+      Value: true
+    - Class: Submaps
+      Enabled: true
+      Fade-out distance: 1
+      High Resolution: true
+      Low Resolution: false
+      Name: Submaps
+      Submap query service: /submap_query
+      Submaps:
+        All: true
+      Topic: /r0/submap_list
+      Tracking frame: r0_tf/base_link
+      Unreliable: false
+      Value: true
+    - Class: Submaps
+      Enabled: true
+      Fade-out distance: 1
+      High Resolution: true
+      Low Resolution: false
+      Name: Submaps
+      Submap query service: /submap_query
+      Submaps:
+        All: true
+      Topic: /r1/submap_list
+      Tracking frame: r1_tf/base_link
+      Unreliable: false
       Value: true
   Enabled: true
   Global Options:
@@ -797,5 +826,5 @@ Window Geometry:
   Views:
     collapsed: false
   Width: 1855
-  X: 65
-  Y: 32
+  X: 61
+  Y: 24
