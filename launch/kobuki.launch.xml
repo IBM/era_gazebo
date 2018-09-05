@@ -91,12 +91,21 @@
   </node>
 
   <!-- OpenSlam's Gmapping -->
+  <!--
   <include file="$(find era_gazebo)/launch/gmapping.launch.xml">
     <arg name="tfpre" value="$(arg tfpre)" />
     <arg name="scan_topic" value="/$(arg namespace)/scan" />
     <arg name="map_topic" value="/$(arg namespace)/map" />
   </include>
+  -->
 
+  <!-- Costmap 2D -->
+  <node name="static_tf0" pkg="tf" type="static_transform_publisher" args="2 0 0 0 0 0 /map /base_footprint 100"/>
+  <node name="costmap_node" pkg="costmap_2d" type="costmap_2d_node" >
+    <rosparam file="$(find era_gazebo)/launch/costmap_2d.yaml" command="load" ns="costmap" />
+    <remap from="costmap_node/costmap/costmap" to="map"/>
+  </node>
+  
   <!-- Google's Cartographer -->
   <!--
   <include file="$(find era_gazebo)/launch/cartographer.launch.xml">

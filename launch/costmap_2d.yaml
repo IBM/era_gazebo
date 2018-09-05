@@ -1,0 +1,15 @@
+global_frame: map
+robot_base_frame: base_footprint
+update_frequency: 2.0
+publish_frequency: 2.0
+rolling_window: true
+always_send_full_costmap: true
+static_map: false
+width: 5.0
+height: 5.0
+resolution: 0.01
+plugins:
+  - {name: obstacles, type: "costmap_2d::ObstacleLayer"}
+obstacles:
+  observation_sources: scan
+  scan: {data_type: LaserScan, sensor_frame: base_footprint, clearing: true, marking: true, topic: scan}
