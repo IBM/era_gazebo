@@ -32,6 +32,7 @@
   </group>
 
   <!-- Second robot -->
+  <!--
   <group ns="r1">
     <include file="$(find era_gazebo)/launch/kobuki.launch.xml">
       <arg name="namespace" value="r1" />
@@ -46,7 +47,8 @@
       <arg name="remote_port" value="52004" />
     </include>
   </group>
-
+  -->
+  
   <!-- Debugging tools -->
   <node name="rviz" pkg="rviz" type="rviz" args="-d $(find era_gazebo)/rviz/era.rviz" output="screen"/>
   
