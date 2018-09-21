@@ -1,0 +1,15 @@
+<launch>
+
+  <arg name="bag_name" default=""/>
+  <arg name="world_file" default="$(find era_gazebo)/worlds/era.world"/>
+  <arg name="gui" default="true"/>
+
+  <!-- Bag file playback -->
+  <node pkg="rosbag" type="play" name="player" output="screen" args="-d 10 $(arg bag_name)"/>
+  
+  <include file="$(find era_gazebo)/launch/era.launch">
+    <arg name="world_file" value="$(arg world_file)" />
+    <arg name="gui" value="$(arg gui)" />
+  </include>
+  
+</launch>
