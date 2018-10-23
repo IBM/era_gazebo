@@ -28,6 +28,7 @@
       <arg name="kobuki_publish_tf" value="true"/>
       <arg name="local_port" value="52001" />
       <arg name="remote_port" value="52002" />
+      <arg name="launch-prefix" value="operf" />
     </include>
   </group>
 
