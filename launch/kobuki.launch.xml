@@ -151,6 +151,8 @@
     output="screen"/>
   
   <!-- Remote agent -->
+  <!--
   <node pkg="dsrc" name="remote_agent" type="remote_agent" args="$(arg remote_port) $(arg local_port)" output="screen"/>
+  -->
   
 </launch>

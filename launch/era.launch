@@ -28,7 +28,9 @@
       <arg name="kobuki_publish_tf" value="true"/>
       <arg name="local_port" value="52001" />
       <arg name="remote_port" value="52002" />
+      <!--
       <arg name="launch-prefix" value="operf" />
+      -->
     </include>
   </group>
 
@@ -44,13 +46,17 @@
       <arg name="stacks" value="$(arg stacks)"/>
       <arg name="3d_sensor" value="$(arg 3d_sensor)"/>
       <arg name="kobuki_publish_tf" value="true"/>
+      <arg name="local_port" value="52002" />
+      <arg name="remote_port" value="52001" />      
+      <!--
       <arg name="local_port" value="52003" />
       <arg name="remote_port" value="52004" />
+      -->
     </include>
   </group>
   
   <!-- Debugging tools -->
-  <node name="rviz" pkg="rviz" type="rviz" args="-d $(find era_gazebo)/rviz/era.rviz" output="screen"/>
+  <node name="rviz" pkg="rviz" type="rviz" args="-d $(find era_gazebo)/rviz/era.rviz" output="screen" if="$(eval gui == true)"/>
   
   <!-- Multi-robot map merging -->
   <!--
