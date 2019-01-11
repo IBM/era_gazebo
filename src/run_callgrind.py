@@ -14,15 +14,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+from __future__ import print_function
 import subprocess
 import time
 
 pid = subprocess.check_output(['pgrep', '-f', 'wifi_transceiver.py --ros-namespace r0'])
 pid = pid.rstrip()
-print pid
+print(pid)
 
 output = subprocess.check_output(['callgrind_control', '-i', 'on', str(pid)])
-print output
+print(output)
 time.sleep(5)
 subprocess.check_output(['callgrind_control', '-d'])
 subprocess.check_output(['callgrind_control', '-i', 'off', str(pid)])
