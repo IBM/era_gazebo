@@ -18,7 +18,6 @@ use_cxx11()
 # Load catkin and all dependencies required for this package
 find_package(catkin REQUIRED COMPONENTS 
   roscpp
-  gazebo
   gazebo_ros
   tf
   nav_msgs
