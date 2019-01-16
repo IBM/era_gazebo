@@ -51,9 +51,9 @@ catkin_package(
 ## 'Map Fuser' node
 add_executable(map_fuser src/map_fuser.cpp)
 target_link_libraries(map_fuser ${catkin_LIBRARIES})
-#add_dependencies(map_fuser      )
+add_dependencies(map_fuser era_gazebo_generate_messages_eus)
 
 ## 'Message Generator' node
 add_executable(message_generator src/message_generator.cpp)
 target_link_libraries(message_generator ${catkin_LIBRARIES})
-#add_dependencies(message_generator      )
+add_dependencies(message_generator era_gazebo_generate_messages_eus)
