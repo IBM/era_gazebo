@@ -68,8 +68,8 @@ if (not command):
     # Get ROS nodes' PIDs
     node_list = subprocess.check_output(['rosnode', 'list'])
     for node in node_list.split('\n'):
-        #if ('gazebo' in node) or ('rosout' in node) or ('player' in node) or (not node):
-        if not 'ros_interface' in node:
+        if ('gazebo' in node) or ('rosout' in node) or ('player' in node) or (not node):
+        #if not 'ros_interface' in node:
             # Ignore not relevant nodes
             continue
         node_info = subprocess.check_output('rosnode info ' + node + '| grep Pid', shell=True)
@@ -79,23 +79,23 @@ if (not command):
 else:
     # Start the specified command and get its PID
     FNULL = open(os.devnull, 'w')
-    #p1 = subprocess.Popen(command.split(), stdout=FNULL, stderr=subprocess.STDOUT)
-    p1 = subprocess.Popen(command.split(), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    p1 = subprocess.Popen(command.split(), stdout=FNULL, stderr=subprocess.STDOUT)
+    #p1 = subprocess.Popen(command.split(), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     pids.append(str(p1.pid))
     time.sleep(5)
     kill_process = True
     
-    controlport_found = False
-    while not controlport_found:
-        line = p1.stderr.readline()
-        if 'controlport' in line:
-            m = re.search('-p (\d+)', line.rstrip())
-            port = m.group(1)
-            print('ControlPort found:', port)
-            controlport_found = True
-    
-    fout = open(str(p1.pid) + '.csv','w');
-    p2 = subprocess.Popen([gr_perf_to_csv, '127.0.0.1', str(port)], stdout=fout, stderr=subprocess.STDOUT)
+    #controlport_found = False
+    #while not controlport_found:
+    #    line = p1.stderr.readline()
+    #    if 'controlport' in line:
+    #        m = re.search('-p (\d+)', line.rstrip())
+    #        port = m.group(1)
+    #        print('ControlPort found:', port)
+    #        controlport_found = True
+    #
+    #fout = open(str(p1.pid) + '.csv','w');
+    #p2 = subprocess.Popen([gr_perf_to_csv, '127.0.0.1', str(port)], stdout=fout, stderr=subprocess.STDOUT)
 
 #################################################################################################
 # IMPORTANT! The profiler command has to run with root privileges. An 'easy' way to allow this
@@ -104,6 +104,7 @@ else:
 
 if (profiler.strip() == "perf_stat"):
     perf_command   = 'sudo /usr/bin/perf stat -d -d -d --per-thread --field-separator , --output=' + output_filename + ' --pid=' + ",".join(pids) + ' sleep ' + str(timeout)
+    #perf_command   = 'sudo /usr/bin/perf stat -d --output=' + output_filename + ' --pid=' + ",".join(pids) + ' sleep ' + str(timeout)
     report_command = 'Use the following command to generate a basic report: [cat ' + output_filename + ']'
 elif (profiler.strip() == "perf_record"):
     perf_command   = 'sudo /usr/bin/perf record -g -F 997 --output=' + output_filename + ' --pid=' + ",".join(pids) + ' sleep ' + str(timeout)
@@ -122,6 +123,6 @@ print('[profile_era] Profiling completed. ' + report_command)
 if kill_process:
     print('[profile_era] Stopping process', str(p1.pid))
     p1.kill()
-    p2.kill()
-
-fout.close()
+#    p2.kill()
+#
+#fout.close()
