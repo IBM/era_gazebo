@@ -19,13 +19,18 @@
   
   <arg name="local_port"/>
   <arg name="remote_port"/>
+
+  <arg name="launch-prefix" default=""/>
+  <arg name="prof" default="false"/>
+
   
   <!-- Generate the tf_prefix from the namespace -->
   <arg name="tfpre" default="$(arg namespace)_tf" />
   <!-- Put value on the parameter server in the group's namespace -->
   <param name="tf_prefix" value="$(arg namespace)_tf" />
     
-  <arg name="urdf_file" default="$(find xacro)/xacro.py '$(find era_gazebo)/xacro/$(arg base)_$(arg stacks)_$(arg 3d_sensor).urdf.xacro'" />
+  <arg name="urdf_file" default="$(find xacro)/xacro --inorder '$(find era_gazebo)/xacro/$(arg base)_$(arg stacks)_$(arg 3d_sensor).urdf.xacro'" />
+
   <param name="robot_description" command="$(arg urdf_file)" />
   
   <!-- Gazebo model spawner -->
@@ -124,13 +129,39 @@
   </include>
   -->
   
-  <!-- GNURadio flowgraph -->
+  <!-- GNURadio flowgraph
+       Possible values for the GNURadio flowgraph configuration parameters:
+         encoding:  0 (BPSK 1/2), 1 (BPSK 3/4), 2 (QPSK 1/2), 3 (QPSK 3/4), 4 (16QAM 1/2), 5 (16QAM 3/4), 6 (64QAM 2/3), 7 (64QAM 3/4)
+         freq:      anything in the supported band (5.850-5.925 GHz)
+         samp_rate: 5e6 (5 MHz), 10e6 (10 MHz), 20e6 (20 MHz)
+         tx_gain:   0.0 to 1.0 in steps of 0.01
+         rx_gain:   0.0 to 1.0 in steps of 0.01
+         chan_est:  0 (ieee802_11.LS), 1 (ieee802_11.LMS), 2 (ieee802_11.COMB), 3 (ieee802_11.STA)
+         lo_offset: 0, 6e6, 11e6
+   -->
+
   <node pkg="dsrc" name="wifi_transceiver"
+    launch-prefix=""
     type="wifi_transceiver.py"
-    args="--ros-namespace $(arg namespace) --local-port $(arg local_port) --remote-port $(arg remote_port)"
+    args="--ros-namespace $(arg namespace)
+          --local-port $(arg local_port)
+          --remote-port $(arg remote_port)
+          --encoding 0
+          --freq 5890000000
+          --samp-rate 10e6
+          --tx-gain 0.75
+          --rx-gain 0.75
+          --chan-est 0
+          --lo-offset 0"
     output="screen"/>
+
+  <!-- Message Generator -->
+  <node name="message_generator" pkg="era_gazebo" type="message_generator" output="screen"/>
   
+  <!-- Map Fuser -->
+  <node name="map_fuser" pkg="era_gazebo" type="map_fuser" output="screen"/>
+
   <!-- Remote agent -->
   <node pkg="dsrc" name="remote_agent" type="remote_agent" args="$(arg remote_port) $(arg local_port)" output="screen"/>
-  
+
 </launch>

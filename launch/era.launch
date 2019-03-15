@@ -1,5 +1,14 @@
 <launch>
 
+  <!-- General arguemnts -->
+  <arg name="prof" default="false"/>
+  <arg name="prof_output_filename" default="output.perf"/>
+  
+  <!-- Environment variables -->
+  <env name="ROSCONSOLE_FORMAT" value="[${severity}] [${node}]: ${message}" />
+  <env name="ROSCONSOLE_CONFIG_FILE" value="$(find era_gazebo)/launch/rosconsole.config" />
+
+
   <!-- Gazebo -->
   <arg name="world_file" default="$(find era_gazebo)/worlds/era.world"/>
   <arg name="gui" default="true"/>
@@ -26,6 +35,7 @@
       <arg name="stacks" value="$(arg stacks)"/>
       <arg name="3d_sensor" value="$(arg 3d_sensor)"/>
       <arg name="kobuki_publish_tf" value="true"/>
+      <arg name="prof" value="$(arg prof)" />
       <arg name="local_port" value="52001" />
       <arg name="remote_port" value="52002" />
     </include>
@@ -33,6 +43,7 @@
 
   <!-- Second robot -->
 
+  <!--
   <group ns="r1">
     <include file="$(find era_gazebo)/launch/kobuki.launch.xml">
       <arg name="namespace" value="r1" />
@@ -43,13 +54,18 @@
       <arg name="stacks" value="$(arg stacks)"/>
       <arg name="3d_sensor" value="$(arg 3d_sensor)"/>
       <arg name="kobuki_publish_tf" value="true"/>
-      <arg name="local_port" value="52003" />
-      <arg name="remote_port" value="52004" />
+      <arg name="local_port" value="52002" />
+      <arg name="remote_port" value="52001" />      
     </include>
   </group>
-  
+  -->
+    
   <!-- Debugging tools -->
-  <node name="rviz" pkg="rviz" type="rviz" args="-d $(find era_gazebo)/rviz/era.rviz" output="screen"/>
+  <node name="rviz" pkg="rviz" type="rviz" args="-d $(find era_gazebo)/rviz/era.rviz" output="screen" if="$(eval gui == true)"/>
+
+  <!-- Profiling tools -->
+  <node name="profile_era" pkg="era_gazebo" type="profile_era.py" args="-o $(arg prof_output_filename)" output="screen" if="$(eval prof == true)"/>
+
   
   <!-- Multi-robot map merging -->
   <!--
