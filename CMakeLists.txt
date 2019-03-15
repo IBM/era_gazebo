@@ -13,6 +13,10 @@ macro(use_cxx11)
 endmacro(use_cxx11)
 
 use_cxx11()
+
+list(INSERT CMAKE_MODULE_PATH 0 ${CMAKE_SOURCE_DIR}/cmake)
+
+
 #####################################
 
 # Load catkin and all dependencies required for this package
@@ -25,10 +29,19 @@ find_package(catkin REQUIRED COMPONENTS
 )
 
 # Depend on system install of Gazebo
+
 #find_package(gazebo REQUIRED)
 
 link_directories(${GAZEBO_LIBRARY_DIRS})
-include_directories(${Boost_INCLUDE_DIR} ${catkin_INCLUDE_DIRS} ${GAZEBO_INCLUDE_DIRS})
+include_directories(${Boost_INCLUDE_DIR} ${catkin_INCLUDE_DIRS} ${GAZEBO_INCLUDE_DIRS}  ${LZ4_INCLUDE_DIR})
+
+#add_library(${PROJECT_NAME} src/velodyne_plugin.cc)
+#target_link_libraries(${PROJECT_NAME} ${catkin_LIBRARIES} ${GAZEBO_LIBRARIES})
+
+add_message_files(
+   FILES
+   SampleMsg.msg
+)
 
 add_message_files(
   FILES
@@ -38,6 +51,7 @@ add_message_files(
 generate_messages(
   DEPENDENCIES
   nav_msgs
+  geometry_msgs
 )
 
 catkin_package(
@@ -57,4 +71,11 @@ add_dependencies(map_fuser era_gazebo_generate_messages_eus)
 add_executable(message_generator src/message_generator.cpp)
 target_link_libraries(message_generator ${catkin_LIBRARIES})
 add_dependencies(message_generator era_gazebo_generate_messages_eus)
+
+
+add_executable(transmitter_node src/transmitter.cpp)
+add_dependencies(transmitter_node era_gazebo_generate_messages_cpp)
+target_link_libraries(transmitter_node
+  ${catkin_LIBRARIES}
+)
 
