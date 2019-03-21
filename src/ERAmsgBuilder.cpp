@@ -16,8 +16,8 @@ public:
 		tf_filter->registerCallback( boost::bind(&ERAmsgBuilder::callback, this, _1) );
 		pub = n.advertise<era_gazebo::ERAMsg>("transmit_msg", 1000);
 
-		out_msg.ID = "robot_nuc";
-
+		n.getParam("ERAmsgBuilder_node/ID", out_msg.ID);
+		ROS_ERROR_STREAM("here: " << out_msg.ID);
 	}
 private:
 	message_filters::Subscriber<nav_msgs::OccupancyGrid> grid_sub;
