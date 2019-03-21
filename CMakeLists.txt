@@ -70,9 +70,9 @@ add_executable(message_generator src/message_generator.cpp)
 target_link_libraries(message_generator ${catkin_LIBRARIES})
 add_dependencies(message_generator era_gazebo_generate_messages_eus)
 
-add_executable(transmitter_node src/transmitter.cpp)
-add_dependencies(transmitter_node era_gazebo_generate_messages_cpp)
-target_link_libraries(transmitter_node
+add_executable(ERAmsgBuilder_node src/ERAmsgBuilder.cpp)
+add_dependencies(ERAmsgBuilder_node era_gazebo_generate_messages_cpp)
+target_link_libraries(ERAmsgBuilder_node
   ${catkin_LIBRARIES}
 )
 

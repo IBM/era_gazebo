@@ -6,14 +6,14 @@
 #include "era_gazebo/ERAMsg.h"
 
 
-class Transmitter
+class ERAmsgBuilder
 {
 public:
-	Transmitter(): tf(), target_frame("base_footprint") 
+	ERAmsgBuilder(): tf(), target_frame("base_footprint") 
 	{
 		grid_sub.subscribe(n, "local_map", 100);
 		tf_filter = new tf::MessageFilter<nav_msgs::OccupancyGrid>(grid_sub, tf, target_frame, 100);
-		tf_filter->registerCallback( boost::bind(&Transmitter::callback, this, _1) );
+		tf_filter->registerCallback( boost::bind(&ERAmsgBuilder::callback, this, _1) );
 		pub = n.advertise<era_gazebo::ERAMsg>("transmit_msg", 1000);
 
 		out_msg.ID = "robot_nuc";
@@ -66,9 +66,9 @@ public:
 
 int main(int argc, char** argv)
 {
-  ros::init(argc, argv, "transmitter");
+  ros::init(argc, argv, "ERAmsgBuilder");
   
-  Transmitter t;
+  ERAmsgBuilder t;
   t.run();
 //  ros::spin();
 
