@@ -3,7 +3,7 @@
 #include "tf/message_filter.h"
 #include "message_filters/subscriber.h"
 #include "nav_msgs/OccupancyGrid.h"
-#include "era_gazebo/SampleMsg.h"
+#include "era_gazebo/ERAMsg.h"
 
 
 class Transmitter
@@ -11,10 +11,10 @@ class Transmitter
 public:
 	Transmitter(): tf(), target_frame("base_footprint") 
 	{
-		grid_sub.subscribe(n, "/local_map", 100);
+		grid_sub.subscribe(n, "local_map", 100);
 		tf_filter = new tf::MessageFilter<nav_msgs::OccupancyGrid>(grid_sub, tf, target_frame, 100);
 		tf_filter->registerCallback( boost::bind(&Transmitter::callback, this, _1) );
-		pub = n.advertise<era_gazebo::SampleMsg>("out_msg", 1000);
+		pub = n.advertise<era_gazebo::ERAMsg>("transmit_msg", 1000);
 
 		out_msg.ID = "robot_nuc";
 
@@ -26,7 +26,7 @@ private:
 	ros::NodeHandle n;
 	ros::Publisher pub;
 	std::string target_frame;
-	era_gazebo::SampleMsg out_msg;
+	era_gazebo::ERAMsg out_msg;
 
 	void callback(const boost::shared_ptr<const nav_msgs::OccupancyGrid>& grid_ptr) 
 	{

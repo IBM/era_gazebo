@@ -25,6 +25,7 @@ find_package(catkin REQUIRED COMPONENTS
   gazebo_ros
   tf
   nav_msgs
+  gazebo_msgs
   message_generation
 )
 
@@ -38,14 +39,11 @@ include_directories(${Boost_INCLUDE_DIR} ${catkin_INCLUDE_DIRS} ${GAZEBO_INCLUDE
 #add_library(${PROJECT_NAME} src/velodyne_plugin.cc)
 #target_link_libraries(${PROJECT_NAME} ${catkin_LIBRARIES} ${GAZEBO_LIBRARIES})
 
-add_message_files(
-   FILES
-   SampleMsg.msg
-)
 
 add_message_files(
   FILES
   ERAOccupancyGrid.msg
+  ERAMsg.msg
 )
 
 generate_messages(
@@ -72,10 +70,14 @@ add_executable(message_generator src/message_generator.cpp)
 target_link_libraries(message_generator ${catkin_LIBRARIES})
 add_dependencies(message_generator era_gazebo_generate_messages_eus)
 
-
 add_executable(transmitter_node src/transmitter.cpp)
 add_dependencies(transmitter_node era_gazebo_generate_messages_cpp)
 target_link_libraries(transmitter_node
   ${catkin_LIBRARIES}
 )
 
+add_executable(ERAmsgInterpreter_node src/ERAmsgInterpreter.cpp)
+add_dependencies(ERAmsgInterpreter_node era_gazebo_generate_messages_cpp)
+target_link_libraries(ERAmsgInterpreter_node
+  ${catkin_LIBRARIES}
+)
