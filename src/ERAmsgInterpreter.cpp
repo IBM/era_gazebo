@@ -62,7 +62,8 @@ private:
 			gazebo_msgs::SpawnModel spawn_msg;
 
 			spawn_msg.request.model_name = msg->ID;
-			n.getParam("robot_description", spawn_msg.request.model_xml);
+			n.getParam("simple_box_description", spawn_msg.request.model_xml);
+			//spawn_msg.request.model_xml = "/home/nuc/.gazebo/models/dumpster/model.srdf";
 
 			spawn_msg.request.initial_pose = msg->pose;
 			spawn_msg.request.reference_frame = "";

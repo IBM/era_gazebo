@@ -2,6 +2,10 @@
 
 <arg name="robot_name" default="nuc"/>
 
+<arg name="urdf_file" default="$(find era_gazebo)/launch/simple_box.urdf" />
+
+<param name="simple_box_description" textfile="$(arg urdf_file)" />
+
 <node pkg="era_gazebo" name="ERAmsgBuilder_node" type="ERAmsgBuilder_node" >
   <param name="ID" value="$(arg robot_name)"/>
 </node>
