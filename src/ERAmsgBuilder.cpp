@@ -44,9 +44,11 @@ private:
        	//ROS_INFO_STREAM(out_msg.pose.position.x);
 
        	tf::poseTFToMsg(transform, out_msg.pose);
-       
+       	
        	out_msg.grid = *grid_ptr;
    		
+       	out_msg.header = grid_ptr->header;
+
 	};
 public:
 	void run()

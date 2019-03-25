@@ -20,6 +20,8 @@ public:
 		gazebo_model_pub = n.advertise<gazebo_msgs::ModelState>("gazebo/set_model_state", 10);
 		spawn_srv = n.serviceClient<gazebo_msgs::SpawnModel>("/gazebo/spawn_urdf_model");
 
+		era_msg_pub = n.advertise<era_gazebo::ERAMsg>("external_occ_grids", 10);
+
 		counter = 0;
 	}
 
@@ -28,6 +30,7 @@ private:
 	ros::Subscriber era_msg_sub;
 	ros::Subscriber gazebo_model_sub;
 	ros::Publisher gazebo_model_pub;
+	ros::Publisher era_msg_pub;
 	ros::ServiceClient spawn_srv;
 	vector<string> current_models;
 	unsigned int counter;
@@ -37,7 +40,6 @@ private:
 		//ROS_INFO_STREAM("Received a new message. Robot Name: " << msg->ID);
 
 		//Check if the robot exist
-
 		vector<string>::iterator it = find (current_models.begin(), current_models.end(), msg->ID);
 		if (it != current_models.end()) {
 		    // Found. We move it
@@ -62,8 +64,9 @@ private:
 			gazebo_msgs::SpawnModel spawn_msg;
 
 			spawn_msg.request.model_name = msg->ID;
+			ROS_ERROR_STREAM(spawn_msg.request.model_name);
 			n.getParam("simple_box_description", spawn_msg.request.model_xml);
-			//spawn_msg.request.model_xml = "/home/nuc/.gazebo/models/dumpster/model.srdf";
+			//ROS_ERROR_STREAM(spawn_msg.request.model_xml);
 
 			spawn_msg.request.initial_pose = msg->pose;
 			spawn_msg.request.reference_frame = "";
@@ -77,13 +80,15 @@ private:
 
 		}
 
+		era_msg_pub.publish(*msg);
+
 	};
 
 
 	void gazebo_model_callback(const boost::shared_ptr<const gazebo_msgs::ModelStates>& msg)
 	{
 		// This callback will be 100Hz
-		// Let's slow it down
+		// Let's slow it down to 1Hz
 		if(current_models.empty() || counter == 100) {
 			current_models = msg->name;
 			counter = 0;

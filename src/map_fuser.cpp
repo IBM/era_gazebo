@@ -16,25 +16,37 @@
  */
 
 #include "ros/ros.h"
-#include "era_gazebo/ERAOccupancyGrid.h"
+#include <message_filters/subscriber.h>
+#include <message_filters/synchronizer.h>
+#include <message_filters/sync_policies/approximate_time.h>
 
-void local_map_callback(const era_gazebo::ERAOccupancyGrid::ConstPtr& msg)
+#include "era_gazebo/ERAMsg.h"
+#include "nav_msgs/OccupancyGrid.h"
+
+void callback(const nav_msgs::OccupancyGrid::ConstPtr& local_msg, 
+			  const era_gazebo::ERAMsg::ConstPtr& remote_msg)
 {
-  ROS_INFO("I received a local map");
+  
+	ROS_INFO("maps received");
+
+
 }
 
-void remote_map_callback(const era_gazebo::ERAOccupancyGrid::ConstPtr& msg)
-{
-  ROS_INFO("I received a remote map");
-}
 
 int main(int argc, char **argv)
 {
   ros::init(argc, argv, "map_fuser");
 
   ros::NodeHandle n;
-  ros::Subscriber loc_map_sub = n.subscribe<era_gazebo::ERAOccupancyGrid>("local_map", 1000, local_map_callback);
-  ros::Subscriber rem_map_sub = n.subscribe<era_gazebo::ERAOccupancyGrid>("remote_map", 1000, remote_map_callback);
+  message_filters::Subscriber<nav_msgs::OccupancyGrid> loc_map_sub(n, "/local_map", 1000);
+  message_filters::Subscriber<era_gazebo::ERAMsg> rem_map_sub(n, "/external_occ_grids", 1000);
+
+  typedef message_filters::sync_policies::ApproximateTime<nav_msgs::OccupancyGrid, era_gazebo::ERAMsg> MySyncPolicy;
+
+  message_filters::Synchronizer<MySyncPolicy> sync(MySyncPolicy(100), loc_map_sub, rem_map_sub);
+  sync.registerCallback(boost::bind(&callback, _1, _2));
+  
+
   ros::spin();
 
   return 0;
