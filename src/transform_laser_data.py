@@ -16,6 +16,7 @@
 #
 
 from __future__ import division
+from __future__ import print_function
 
 import rospy
 from sensor_msgs.msg import LaserScan
@@ -46,7 +47,7 @@ class TransformLaser(object):
                                                              rospy.Duration(1.0))   # wait for 1 sec
         except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException):
             rospy.logerror('Error getting transform')
-            print "ERROR!"
+            print("ERROR!")
         
     def laser_callback(self, msg):
         self.laser = msg
