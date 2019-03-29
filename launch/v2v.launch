@@ -32,4 +32,9 @@
           --chan-est 0
           --lo-offset 0"
     output="screen"/>
+
+
+<node pkg="era_gazebo" name="map_fuser" type="map_fuser" />
+
 </launch>
+
