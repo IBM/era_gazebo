@@ -19,9 +19,14 @@
 #include <message_filters/subscriber.h>
 #include <message_filters/synchronizer.h>
 #include <message_filters/sync_policies/approximate_time.h>
+#include "combine_grids.h"
 
 #include "era_gazebo/ERAMsg.h"
 #include "nav_msgs/OccupancyGrid.h"
+
+typedef boost::shared_ptr<nav_msgs::OccupancyGrid> GridPtr;
+
+ros::Publisher pub;
 
 void callback(const nav_msgs::OccupancyGrid::ConstPtr& local_msg, 
 			  const era_gazebo::ERAMsg::ConstPtr& remote_msg)
@@ -29,6 +34,15 @@ void callback(const nav_msgs::OccupancyGrid::ConstPtr& local_msg,
   
 	ROS_INFO("maps received");
 
+	std::vector<nav_msgs::OccupancyGrid> grids;
+	grids.push_back(*local_msg);
+
+	grids.push_back(remote_msg->grid);
+
+
+	GridPtr combined = occupancy_grid_utils::combineGrids(grids);
+
+	pub.publish(*combined);
 
 }
 
@@ -46,6 +60,7 @@ int main(int argc, char **argv)
   message_filters::Synchronizer<MySyncPolicy> sync(MySyncPolicy(100), loc_map_sub, rem_map_sub);
   sync.registerCallback(boost::bind(&callback, _1, _2));
   
+  pub = n.advertise<nav_msgs::OccupancyGrid>("combined_grid", 1000);
 
   ros::spin();
 

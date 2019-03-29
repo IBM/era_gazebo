@@ -34,7 +34,7 @@ find_package(catkin REQUIRED COMPONENTS
 #find_package(gazebo REQUIRED)
 
 link_directories(${GAZEBO_LIBRARY_DIRS})
-include_directories(${Boost_INCLUDE_DIR} ${catkin_INCLUDE_DIRS} ${GAZEBO_INCLUDE_DIRS}  ${LZ4_INCLUDE_DIR})
+include_directories(${Boost_INCLUDE_DIR} ${catkin_INCLUDE_DIRS} ${GAZEBO_INCLUDE_DIRS}  ${LZ4_INCLUDE_DIR} include)
 
 #add_library(${PROJECT_NAME} src/velodyne_plugin.cc)
 #target_link_libraries(${PROJECT_NAME} ${catkin_LIBRARIES} ${GAZEBO_LIBRARIES})
@@ -61,7 +61,7 @@ catkin_package(
 )
 
 ## 'Map Fuser' node
-add_executable(map_fuser src/map_fuser.cpp)
+add_executable(map_fuser src/map_fuser.cpp src/combine_grids.cpp src/coordinate_conversions.cpp)
 target_link_libraries(map_fuser ${catkin_LIBRARIES})
 add_dependencies(map_fuser era_gazebo_generate_messages_eus)
 

@@ -79,8 +79,9 @@ private:
 			}
 
 		}
-
-		era_msg_pub.publish(*msg);
+		era_gazebo::ERAMsg stamped_msg = *msg;
+		stamped_msg.header.stamp = ros::Time::now(); //this is debatable. We restamp the incoming package with current time. ROS 2.0 might have a better solution
+		era_msg_pub.publish(stamped_msg);
 
 	};
 
