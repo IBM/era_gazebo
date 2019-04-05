@@ -1,12 +1,13 @@
 <launch>
   <arg name="world_file"  default="$(find era_gazebo)/worlds/era.world"/>
-  <arg name="model" default="$(env TURTLEBOT3_MODEL)" doc="model type [burger, waffle, waffle_pi]"/>
-  <arg name="x_pos" default="0.0"/>
+  <arg name="model" default="waffle_pi" doc="model type [burger, waffle, waffle_pi]"/>
+
+  <arg name="x_pos" default="1.0"/>
   <arg name="y_pos" default="0.0"/>
   <arg name="z_pos" default="0.0"/>
+
   <arg name="gui" default="true"/>
-  <arg name="stacks"    value="hexagons"/>  <!-- circles, hexagons --> 
-  <arg name="3d_sensor" value="kinect"/>  <!-- kinect, asus_xtion_pro --> 
+  
 
   <include file="$(find era_gazebo)/worlds/empty_world.launch">
     <arg name="use_sim_time" value="true"/>
