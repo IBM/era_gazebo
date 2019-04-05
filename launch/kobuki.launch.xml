@@ -16,7 +16,9 @@
   <arg name="profiles_path" default="./"/>
 
   <arg name="workload_size" default="small"/>
-  
+
+  <arg name="local_ip"/>
+  <arg name="remote_ip"/>  
   <arg name="local_port"/>
   <arg name="remote_port"/>
 
@@ -144,6 +146,8 @@
     launch-prefix=""
     type="wifi_transceiver.py"
     args="--ros-namespace $(arg namespace)
+          --local-ip $(arg local_ip)
+          --remote-ip $(arg remote_ip)
           --local-port $(arg local_port)
           --remote-port $(arg remote_port)
           --encoding 0

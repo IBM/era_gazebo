@@ -41,13 +41,17 @@
     <remap from="costmap_node/costmap/costmap" to="local_map"/>
   </node>
 
+<arg name="local_ip" value="192.168.0.1" />
+<arg name="remote_ip" value="192.168.0.2" />
 <arg name="local_port" value="52001" />
 <arg name="remote_port" value="52002" />
 
 <node pkg="dsrc" name="wifi_transceiver"
     launch-prefix=""
     type="wifi_transceiver.py"
-    args="--local-port $(arg local_port)
+    args="--local-ip $(arg local_ip)
+          --remote-ip $(arg remote_ip)
+          --local-port $(arg local_port)
           --remote-port $(arg remote_port)
           --encoding 0
           --freq 5890000000
