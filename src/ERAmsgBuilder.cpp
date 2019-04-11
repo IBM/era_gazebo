@@ -15,7 +15,7 @@ public:
 		n.getParam("tf_prefix", tf_prefix);
 		tf_filter = new tf::MessageFilter<nav_msgs::OccupancyGrid>(grid_sub, tf, tf_prefix+"/"+target_frame, 100);
 		tf_filter->registerCallback( boost::bind(&ERAmsgBuilder::callback, this, _1) );
-		pub = n.advertise<era_gazebo::ERAMsg>("transmit_msg", 1000);
+		pub = n.advertise<era_gazebo::ERAMsg>("transmit_msg", 10);
 
 		n.getParam("ERAmsgBuilder_node/ID", out_msg.ID);
 		ROS_INFO_STREAM("ROBOT ID: " << out_msg.ID);
