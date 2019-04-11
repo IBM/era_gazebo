@@ -1,6 +1,6 @@
 <launch>
 
-<arg name="robot_name" default="nuc"/>
+<arg name="robot_name" default="w530"/>
 
 <arg name="urdf_file" default="$(find era_gazebo)/launch/simple_box.urdf" />
 
@@ -13,27 +13,23 @@
 <node pkg="era_gazebo" name="ERAmsgInterpreter_node" type="ERAmsgInterpreter_node" >
 </node>
 
-<arg name="local_ip" value="192.168.0.1" />
-<arg name="remote_ip" value="192.168.0.2" />
-<arg name="local_port" value="52001" />
-<arg name="remote_port" value="52002" />
+<arg name="local_ip" value="192.168.0.2" />
+<arg name="remote_ip" value="192.168.0.1" />
+<arg name="local_port" value="52002" />
+<arg name="remote_port" value="52001" />
 <arg name="namespace" value="$(arg robot_name)" />
 
 <node pkg="dsrc" name="wifi_transceiver"
     launch-prefix=""
-    type="wifi_transceiver.py"
-    args="--local-ip $(arg local_ip)
-          --remote-ip $(arg remote_ip)
-          --ros-namespace $(arg namespace)
-          --local-port $(arg local_port)
-          --remote-port $(arg remote_port)
-          --encoding 0
+    type="wifi_transceiver_dev2.py"
+    args=" --ros-namespace $(arg namespace)
+           --encoding 0
           --freq 5890000000
-          --samp-rate 10e6
-          --tx-gain 0.75
-          --rx-gain 0.75
+          --samp-rate 5e6
+          --tx-gain 75
+          --rx-gain 75
           --chan-est 0
-          --lo-offset 0"
+          --lo-offset 6e6"
     output="screen"/>
 
 
