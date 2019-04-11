@@ -52,15 +52,15 @@ int main(int argc, char **argv)
   ros::init(argc, argv, "map_fuser");
 
   ros::NodeHandle n;
-  message_filters::Subscriber<nav_msgs::OccupancyGrid> loc_map_sub(n, "/local_map", 1000);
-  message_filters::Subscriber<era_gazebo::ERAMsg> rem_map_sub(n, "/external_occ_grids", 1000);
+  message_filters::Subscriber<nav_msgs::OccupancyGrid> loc_map_sub(n, "/local_map", 10);
+  message_filters::Subscriber<era_gazebo::ERAMsg> rem_map_sub(n, "/external_occ_grids", 10);
 
   typedef message_filters::sync_policies::ApproximateTime<nav_msgs::OccupancyGrid, era_gazebo::ERAMsg> MySyncPolicy;
 
   message_filters::Synchronizer<MySyncPolicy> sync(MySyncPolicy(100), loc_map_sub, rem_map_sub);
   sync.registerCallback(boost::bind(&callback, _1, _2));
   
-  pub = n.advertise<nav_msgs::OccupancyGrid>("combined_grid", 1000);
+  pub = n.advertise<nav_msgs::OccupancyGrid>("combined_grid", 10);
 
   ros::spin();
 
