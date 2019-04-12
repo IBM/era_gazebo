@@ -52,8 +52,8 @@ int main(int argc, char **argv)
   ros::init(argc, argv, "map_fuser");
 
   ros::NodeHandle n;
-  message_filters::Subscriber<nav_msgs::OccupancyGrid> loc_map_sub(n, "/local_map", 10);
-  message_filters::Subscriber<era_gazebo::ERAMsg> rem_map_sub(n, "/external_occ_grids", 10);
+  message_filters::Subscriber<nav_msgs::OccupancyGrid> loc_map_sub(n, "local_map", 10);
+  message_filters::Subscriber<era_gazebo::ERAMsg> rem_map_sub(n, "external_occ_grids", 10);
 
   typedef message_filters::sync_policies::ApproximateTime<nav_msgs::OccupancyGrid, era_gazebo::ERAMsg> MySyncPolicy;
 
