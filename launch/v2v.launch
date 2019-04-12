@@ -13,11 +13,11 @@
 <node pkg="era_gazebo" name="ERAmsgInterpreter_node" type="ERAmsgInterpreter_node" >
 </node>
 
-<arg name="local_ip" value="192.168.0.1" />
-<arg name="remote_ip" value="192.168.0.2" />
-<arg name="local_port" value="52001" />
-<arg name="remote_port" value="52002" />
-<arg name="namespace" value="$(arg robot_name)" />
+<arg name="local_ip" default="192.168.0.1" />
+<arg name="remote_ip" default="192.168.0.2" />
+<arg name="local_port" default="52001" />
+<arg name="remote_port" default="52002" />
+<arg name="namespace" default="$(arg robot_name)" />
 
 <node pkg="dsrc" name="wifi_transceiver"
     launch-prefix=""
