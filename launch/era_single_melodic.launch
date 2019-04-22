@@ -1,5 +1,6 @@
 <launch>
-  <arg name="world_file"  default="$(find era_gazebo)/worlds/era.world"/>
+
+  <arg name="world_file"  default="$(find turtlebot3_gazebo)/worlds/turtlebot3_house.world"/>
   <arg name="model" default="waffle_pi" doc="model type [burger, waffle, waffle_pi]"/>
 
   <arg name="x_pos" default="1.0"/>
