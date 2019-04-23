@@ -24,7 +24,7 @@ import subprocess
 import re
 import os
 
-command = 'timeout 30s /home/augustojv/catkin_ws/src/dsrc/gr-ieee802-11/examples/wifi_transceiver_standalone.py --encoding 0 --freq 5890000000 --samp-rate 10 --tx-gain 0.75 --rx-gain 0.75 --chan-est 0 --lo-offset 0 --msg-count 200000 --pdu-length 1500 --strobe-period '
+command = 'timeout 30s /home/augustojv/catkin_ws/src/dsrc/gr-ieee802-11/examples/wifi_transceiver_standalone.py --encoding 0 --freq 5.89G --samp-rate 10M --tx-gain 0.75 --rx-gain 0.75 --chan-est 0 --lo-offset 0 --msg-count 200000 --pdu-length 1500 --strobe-period '
 strobe_periods_ms = [1000, 500, 100, 50, 40, 30, 20, 10, 8, 6, 4, 2, 1]
 
 FNULL = open(os.devnull, 'w')
@@ -39,7 +39,7 @@ for strobe_period_ms in strobe_periods_ms:
         # timeout always returns 124 which is not an error (so we process the output here)
         for line in e.output.splitlines():
             if 'Rate' in line:
-                m = re.search('Rate \(bits/sec\): ([\d\.]+)', line)
+                m = re.search('Rate \(bits/sec\): ([\d\.e\+]+)', line)
                 rate_avg = m.group(1)
         strobe_rate    = 1000/strobe_period_ms
         injection_rate =  1500 * 8 * strobe_rate;
