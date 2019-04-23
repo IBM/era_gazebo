@@ -1,0 +1,53 @@
+<launch>
+
+  <arg name="world_file"  default="$(find era_gazebo)/worlds/era.world"/>
+  <arg name="gui" default="false"/>
+  <arg name="robot1_name" value="r0"/>
+  <arg name="robot2_name" value="r1"/>
+
+
+  <include file="$(find era_gazebo)/worlds/empty_world.launch">
+    <arg name="use_sim_time" value="true"/>
+    <arg name="debug" value="false"/>
+    <arg name="gui" value="$(arg gui)" />
+    <arg name="world_name" value="$(arg world_file)"/>
+  </include>
+
+
+  <group ns="$(arg robot1_name)">
+     <include file="$(find era_gazebo)/launch/robot.launch">
+      <arg name="namespace" value="$(arg robot1_name)" />
+      <arg name="initX" value="0" />
+      <arg name="initY" value="-2" />
+      <arg name="initZ" value="0" />
+     </include>
+
+     <include file="$(find era_gazebo)/launch/v2v.launch">
+     	<arg name="robot_name" value="$(arg robot1_name)" />
+     	<arg name="local_ip" value="127.0.0.1" />
+		<arg name="remote_ip" value="127.0.0.1" />
+		<arg name="local_port" value="52001" />
+		<arg name="remote_port" value="52002" />
+     </include>
+  </group>
+
+  <group ns="$(arg robot2_name)">
+    <include file="$(find era_gazebo)/launch/robot.launch">
+      <arg name="namespace" value="$(arg robot2_name)" />
+      <arg name="initX" value="1" />
+      <arg name="initY" value="0" />
+      <arg name="initZ" value="0" />
+    </include>
+
+    <include file="$(find era_gazebo)/launch/v2v.launch">
+     	<arg name="robot_name" value="$(arg robot2_name)" />
+     	<arg name="local_ip" value="127.0.0.1" />
+		<arg name="remote_ip" value="127.0.0.1" />
+		<arg name="local_port" value="52002" />
+		<arg name="remote_port" value="52001" />
+    </include>
+  </group>
+
+
+
+</launch>

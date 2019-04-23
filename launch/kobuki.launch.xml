@@ -107,10 +107,12 @@
   -->
 
   <!-- Costmap 2D -->
+  <!--
   <node name="static_tf0" pkg="tf" type="static_transform_publisher" args="2 0 0 0 0 0 /map /base_footprint 100"/>
+-->
   <node name="costmap_node" pkg="costmap_2d" type="costmap_2d_node" >
     <rosparam file="$(find era_gazebo)/launch/costmap_2d.yaml" command="load" ns="costmap" />
-    <remap from="costmap_node/costmap/costmap" to="map"/>
+    <remap from="costmap_node/costmap/costmap" to="local_map"/>
   </node>
   
   <!-- Google's Cartographer -->
@@ -157,11 +159,20 @@
           --rx-gain 0.75
           --chan-est 0
           --lo-offset 0"
-    output="screen"/>
+	  output="screen"/>
 
-  <!-- Message Generator -->
+	  <!-- Message Generator -->
+	 <!--
   <node name="message_generator" pkg="era_gazebo" type="message_generator" output="screen"/>
-  
+	 -->
+  <node pkg="era_gazebo" name="ERAmsgBuilder_node" type="ERAmsgBuilder_node" >
+	<param name="tf_prefix" value="$(arg tfpre)" />
+	<param name="ID" value="$(arg namespace)_mobile_base"/>
+  </node>
+
+<node pkg="era_gazebo" name="ERAmsgInterpreter_node" type="ERAmsgInterpreter_node" >
+</node>
+
   <!-- Map Fuser -->
   <node name="map_fuser" pkg="era_gazebo" type="map_fuser" output="screen"/>
 

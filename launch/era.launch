@@ -36,8 +36,8 @@
       <arg name="3d_sensor" value="$(arg 3d_sensor)"/>
       <arg name="kobuki_publish_tf" value="true"/>
       <arg name="prof" value="$(arg prof)" />
-      <arg name="local_ip" value="127.0.0.1" />
-      <arg name="remote_ip" value="127.0.0.1" />
+      <arg name="local_ip" value="0.0.0.0" />
+      <arg name="remote_ip" value="0.0.0.0" />
       <arg name="local_port" value="52001" />
       <arg name="remote_port" value="52002" />
     </include>
@@ -45,7 +45,7 @@
 
   <!-- Second robot -->
 
-  <!--
+  
   <group ns="r1">
     <include file="$(find era_gazebo)/launch/kobuki.launch.xml">
       <arg name="namespace" value="r1" />
@@ -56,11 +56,13 @@
       <arg name="stacks" value="$(arg stacks)"/>
       <arg name="3d_sensor" value="$(arg 3d_sensor)"/>
       <arg name="kobuki_publish_tf" value="true"/>
+      <arg name="local_ip" value="0.0.0.0" />
+      <arg name="remote_ip" value="0.0.0.0" />
       <arg name="local_port" value="52002" />
       <arg name="remote_port" value="52001" />      
     </include>
   </group>
-  -->
+  
     
   <!-- Debugging tools -->
   <node name="rviz" pkg="rviz" type="rviz" args="-d $(find era_gazebo)/rviz/era.rviz" output="screen" if="$(eval gui == true)"/>
