@@ -1,13 +1,13 @@
 <launch>
 
-  <arg name="world_file"  default="$(find turtlebot3_gazebo)/worlds/turtlebot3_house.world"/>
+  <arg name="world_file"  default="$(find era_gazebo)/worlds/era.world"/>
   <arg name="model" default="waffle_pi" doc="model type [burger, waffle, waffle_pi]"/>
 
   <arg name="x_pos" default="1.0"/>
   <arg name="y_pos" default="0.0"/>
   <arg name="z_pos" default="0.0"/>
 
-  <arg name="gui" default="true"/>
+  <arg name="gui" default="false"/>
   
 
   <include file="$(find era_gazebo)/worlds/empty_world.launch">
