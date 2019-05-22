@@ -27,6 +27,10 @@ find_package(catkin REQUIRED COMPONENTS
   nav_msgs
   gazebo_msgs
   message_generation
+  image_transport 
+  cv_bridge
+  image_geometry
+  pcl_ros
 )
 
 # Depend on system install of Gazebo
@@ -39,17 +43,27 @@ include_directories(${Boost_INCLUDE_DIR} ${catkin_INCLUDE_DIRS} ${GAZEBO_INCLUDE
 #add_library(${PROJECT_NAME} src/velodyne_plugin.cc)
 #target_link_libraries(${PROJECT_NAME} ${catkin_LIBRARIES} ${GAZEBO_LIBRARIES})
 
+find_package(OpenCV REQUIRED)
+include_directories(${OpenCV_INCLUDE_DIRS})
 
 add_message_files(
   FILES
   ERAOccupancyGrid.msg
   ERAMsg.msg
+  DetectionBox.msg
+  DetectionBoxList.msg
 )
+
+add_service_files(
+   FILES
+   SceneBBox.srv
+ )
 
 generate_messages(
   DEPENDENCIES
   nav_msgs
   geometry_msgs
+  std_msgs
 )
 
 catkin_package(
@@ -81,3 +95,12 @@ add_dependencies(ERAmsgInterpreter_node era_gazebo_generate_messages_cpp)
 target_link_libraries(ERAmsgInterpreter_node
   ${catkin_LIBRARIES}
 )
+
+add_Executable(occ_node src/occupancy_grid_node.cpp)
+target_link_libraries(occ_node
+  ${catkin_LIBRARIES}
+  ${OpenCV_LIBRARIES} 
+)
+
+
+

@@ -1,0 +1,10 @@
+<launch>
+
+	<node  name="detection_tensorflow" pkg="detection" type="detection_tensorflow.py" output="screen">
+
+		<remap from="image_input" to="/camera/rgb/image_raw" />
+
+	</node>
+
+
+</launch>

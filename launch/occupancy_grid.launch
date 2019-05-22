@@ -1,0 +1,10 @@
+<launch>
+	<node  name="og_node" pkg="detection" type="og_node" output="screen">
+	
+	<remap from="~/object_input" to="/detected_objects" />
+	<remap from="~/image_input" to="/camera/aligned_depth_to_color/image_raw" />
+	<remap from="~/camera_info" to="/camera/aligned_depth_to_color/camera_info" />
+
+
+	</node>
+</launch>
