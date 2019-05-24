@@ -20,13 +20,13 @@
 #include <pcl/filters/statistical_outlier_removal.h>
 #include <pcl_conversions/pcl_conversions.h>
 
-#include "detection/DetectionBoxList.h"
-#include "detection/DetectionBox.h"
+#include "era_gazebo/DetectionBoxList.h"
+#include "era_gazebo/DetectionBox.h"
 
 using namespace cv;
 
 typedef pcl::PointCloud<pcl::PointXYZ> PointCloud;
-typedef message_filters::sync_policies::ApproximateTime <sensor_msgs::Image, sensor_msgs::CameraInfo, detection::DetectionBoxList> mySyncPolicy;
+typedef message_filters::sync_policies::ApproximateTime <sensor_msgs::Image, sensor_msgs::CameraInfo, era_gazebo::DetectionBoxList> mySyncPolicy;
 
 tf::TransformListener * tfListener;
 
@@ -34,8 +34,11 @@ image_transport::Publisher result_pub;
 ros::Publisher grid_pub;
 ros::Publisher cloud_pub;
 
-void callback(const sensor_msgs::ImageConstPtr& image_msg, const sensor_msgs::CameraInfoConstPtr& info_msg, const detection::DetectionBoxListConstPtr& detection_msg)
+void callback(const sensor_msgs::ImageConstPtr& image_msg, const sensor_msgs::CameraInfoConstPtr& info_msg, const era_gazebo::DetectionBoxListConstPtr& detection_msg)
 {
+
+	ROS_INFO_STREAM("test");
+
 	if(detection_msg->detection_list.size()==0)
 		return;
 
@@ -65,7 +68,7 @@ void callback(const sensor_msgs::ImageConstPtr& image_msg, const sensor_msgs::Ca
 
  	for(int b = 0; b<detection_msg->detection_list.size(); b++) {
 
- 		detection::DetectionBox box = (detection_msg->detection_list[b]);
+ 		era_gazebo::DetectionBox box = (detection_msg->detection_list[b]);
 
  		PointCloud::Ptr msg (new PointCloud);
  		msg->header.frame_id = image_msg->header.frame_id;
@@ -154,17 +157,17 @@ int main(int argc, char** argv)
 	ros::NodeHandle n("~");
   //image_transport::ImageTransport it(n);
 
-	tfListener = new tf::TransformListener();
+	//tfListener = new tf::TransformListener();
 
 	image_transport::ImageTransport it(n);
 	image_transport::SubscriberFilter image_sub( it, "image_input", 100);
-	message_filters::Subscriber<detection::DetectionBoxList> detection_sub(n, "object_input", 100);
+	message_filters::Subscriber<era_gazebo::DetectionBoxList> detection_sub(n, "object_input", 100);
 	message_filters::Subscriber<sensor_msgs::CameraInfo> info_sub(n,"camera_info",100);
 
-	tf::MessageFilter<detection::DetectionBoxList> tf_filter(detection_sub, *tfListener, "camera_link", 100);	
+	//tf::MessageFilter<detection::DetectionBoxList> tf_filter(detection_sub, *tfListener, "camera_link", 100);	
 
 
-	message_filters::Synchronizer< mySyncPolicy > sync(mySyncPolicy(100), image_sub, info_sub, tf_filter);
+	message_filters::Synchronizer< mySyncPolicy > sync(mySyncPolicy(100), image_sub, info_sub, detection_sub);
 	sync.registerCallback(boost::bind(&callback, _1, _2, _3));
 
 	grid_pub = n.advertise<nav_msgs::OccupancyGrid>("out_grid",1);

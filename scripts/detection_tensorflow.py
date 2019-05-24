@@ -105,7 +105,7 @@ class ImageMatcher():
             #print "Found %s with ID %d" % (category, ID)
             return ID
         else:
-            print ("Cannot find matching  %s max score is %f" % category,max_comparison)
+            #print ("Cannot find matching  %s max score is %f" % category, max_comparison)
             ID = self.add_model(hist, category)
             print ("Assigning new ID %d" % ID)
             return ID

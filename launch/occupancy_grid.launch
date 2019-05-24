@@ -1,9 +1,9 @@
 <launch>
-	<node  name="og_node" pkg="detection" type="og_node" output="screen">
+	<node  name="og_node" pkg="era_gazebo" type="occ_node" output="screen">
 	
 	<remap from="~/object_input" to="/detected_objects" />
-	<remap from="~/image_input" to="/camera/aligned_depth_to_color/image_raw" />
-	<remap from="~/camera_info" to="/camera/aligned_depth_to_color/camera_info" />
+	<remap from="~/image_input" to="/camera/depth/image_raw" />
+	<remap from="~/camera_info" to="/camera/depth/camera_info" />
 
 
 	</node>
