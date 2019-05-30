@@ -24,7 +24,7 @@ import sys
 from sensor_msgs.msg import Image
 from std_msgs.msg import Int16
 from cv_bridge import CvBridge
-from detection.msg import DetectionBoxList, DetectionBox
+from era_gazebo.msg import DetectionBoxList, DetectionBox
 import cv2
 import numpy as np
 import os
