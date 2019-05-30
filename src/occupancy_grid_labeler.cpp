@@ -168,9 +168,9 @@ void callback(const sensor_msgs::ImageConstPtr& image_msg, const sensor_msgs::Ca
 
 int main(int argc, char** argv)
 {
-	ros::init(argc, argv, "og_node");
+	ros::init(argc, argv, "og_labeler");
 	ros::NodeHandle n("~");
-  //image_transport::ImageTransport it(n);
+  	//image_transport::ImageTransport it(n);
 
 	//tfListener = new tf::TransformListener();
 

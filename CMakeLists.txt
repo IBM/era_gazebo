@@ -96,9 +96,9 @@ target_link_libraries(ERAmsgInterpreter_node
   ${catkin_LIBRARIES}
 )
 
-add_Executable(occ_node src/occupancy_grid_node.cpp)
-add_dependencies(occ_node era_gazebo_generate_messages_cpp)
-target_link_libraries(occ_node
+add_Executable(og_labeler src/occupancy_grid_labeler.cpp)
+add_dependencies(og_labeler era_gazebo_generate_messages_cpp)
+target_link_libraries(og_labeler
   ${catkin_LIBRARIES}
   ${OpenCV_LIBRARIES} 
 )

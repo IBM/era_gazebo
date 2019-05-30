@@ -1,5 +1,5 @@
 <launch>
-	<node  name="occ_node" pkg="era_gazebo" type="occ_node" output="screen">
+	<node  name="og_labeler" pkg="era_gazebo" type="og_labeler" output="screen">
 	
 	<remap from="~/object_input" to="/detected_objects" />
 	<remap from="~/image_input" to="/camera/aligned_depth_to_color/image_raw" />
