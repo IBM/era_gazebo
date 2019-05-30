@@ -172,17 +172,17 @@ int main(int argc, char** argv)
 	ros::NodeHandle n("~");
   	//image_transport::ImageTransport it(n);
 
-	//tfListener = new tf::TransformListener();
+	tfListener = new tf::TransformListener();
 
 	image_transport::ImageTransport it(n);
 	image_transport::SubscriberFilter image_sub( it, "image_input", 100);
 	message_filters::Subscriber<era_gazebo::DetectionBoxList> detection_sub(n, "object_input", 100);
 	message_filters::Subscriber<sensor_msgs::CameraInfo> info_sub(n,"camera_info",100);
 
-	//tf::MessageFilter<detection::DetectionBoxList> tf_filter(detection_sub, *tfListener, "camera_link", 100);	
+	tf::MessageFilter<era_gazebo::DetectionBoxList> tf_filter(detection_sub, *tfListener, "camera_link", 100);	
 
 
-	message_filters::Synchronizer< mySyncPolicy > sync(mySyncPolicy(100), image_sub, info_sub, detection_sub);
+	message_filters::Synchronizer< mySyncPolicy > sync(mySyncPolicy(100), image_sub, info_sub, tf_filter);
 	sync.registerCallback(boost::bind(&callback, _1, _2, _3));
 
 	grid_pub = n.advertise<nav_msgs::OccupancyGrid>("out_grid",1);
