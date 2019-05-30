@@ -37,8 +37,6 @@ ros::Publisher cloud_pub;
 void callback(const sensor_msgs::ImageConstPtr& image_msg, const sensor_msgs::CameraInfoConstPtr& info_msg, const era_gazebo::DetectionBoxListConstPtr& detection_msg)
 {
 
-	ROS_INFO_STREAM("test");
-
 	if(detection_msg->detection_list.size()==0)
 		return;
 

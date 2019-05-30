@@ -16,8 +16,8 @@
 #include <iostream>
 #include <mutex>
 
-#include "detection/DetectionBoxList.h"
-#include "detection/DetectionBox.h"
+#include "era_gazebo/DetectionBoxList.h"
+#include "era_gazebo/DetectionBox.h"
 
 typedef boost::circular_buffer<sensor_msgs::Image> circular_buffer;
 
@@ -106,10 +106,10 @@ void tracking_thread()
 
     bbox = tracker.get_position();
 
-    detection::DetectionBoxList objs_msg;
+    era_gazebo::DetectionBoxList objs_msg;
     objs_msg.header = current_it->header;
 
-    detection::DetectionBox obj_msg;
+    era_gazebo::DetectionBox obj_msg;
     obj_msg.type = object_type;
     obj_msg.id = object_id;
     obj_msg.left = bbox.left();
@@ -144,7 +144,7 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg)
   mtx.unlock();
 }
 
-void objectCallback(const detection::DetectionBoxListConstPtr& msg)
+void objectCallback(const era_gazebo::DetectionBoxListConstPtr& msg)
 {
   if(msg->detection_list.size()==0)
     return;
@@ -161,7 +161,7 @@ void objectCallback(const detection::DetectionBoxListConstPtr& msg)
 
        image_list.erase(image_list.begin(), current_it);
 
-       detection::DetectionBox f = (msg->detection_list[0]);
+       era_gazebo::DetectionBox f = (msg->detection_list[0]);
        bbox  = drectangle(f.left, f.top, f.right, f.bottom);
        object_type = f.type;
        object_id = f.id;
@@ -205,7 +205,7 @@ void objectCallback(const detection::DetectionBoxListConstPtr& msg)
 
             image_list.erase(image_list.begin(), current_it);
 
-            detection::DetectionBox f = (msg->detection_list[0]);
+            era_gazebo:DetectionBox f = (msg->detection_list[0]);
             bbox  = drectangle(f.left, f.top, f.right, f.bottom);
 
             tracking_started = true;
@@ -241,7 +241,7 @@ int main(int argc, char** argv)
   
   quality_pub = n.advertise<std_msgs::Float64>("tracking_quality", 1);
 
-  object_pub = n.advertise<detection::DetectionBoxList>("tracked_objects",1);
+  object_pub = n.advertise<era_gazebo:DetectionBoxList>("tracked_objects",1);
 
   result_pub = it.advertise("tracking_image", 1);
   

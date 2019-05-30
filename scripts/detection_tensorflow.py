@@ -22,16 +22,16 @@ import random
 #from object_detection.utils import visualization_utils as vis_util
 
 # What model to download.
-MODEL_NAME = 'ssd_mobilenet_v1_coco_2018_01_28'
+#MODEL_NAME = 'ssd_mobilenet_v1_coco_2018_01_28'
 #MODEL_NAME = 'faster_rcnn_resnet101_coco_11_06_2017'
 #MODEL_NAME = 'ssd_inception_v2_coco_2018_01_28'
 #MODEL_NAME = 'ssd_resnet50_v1_2018_07_03'
 
 # Path to frozen detection graph. This is the actual model that is used for the object detection.
-PATH_TO_CKPT = '/home/nuc/catkin_ws/src/detection/models/' + MODEL_NAME + '/frozen_inference_graph.pb'
+#PATH_TO_CKPT = '~/catkin_ws/src/era_gazebo/models/' + MODEL_NAME + '/frozen_inference_graph.pb'
 
 # List of the strings that is used to add correct label for each box.
-PATH_TO_LABELS = os.path.join('/home/nuc/local/ext/tensorflow/models/research/object_detection/data', 'mscoco_label_map.pbtxt')
+
 
 NUM_CLASSES = 90
 
@@ -126,20 +126,21 @@ class ObjectDetectionTF():
         self._cv_bridge = CvBridge()
 
 
-        object_detection_path = rospy.get_param('object_Detection_path', './models/research/object_detection')
-
-        #sys.path.append(object_detection_path)
-
         import object_detection
         from object_detection.utils import ops
         from object_detection.utils import label_map_util
         from object_detection.utils import visualization_utils as vis_util
 
-        print (sys.path)
-
         self._sub = rospy.Subscriber('image_input', Image, self.imageCallback, queue_size=1)
         self._pub = rospy.Publisher('detected_objects', DetectionBoxList, queue_size=1)
         self.image_pub = rospy.Publisher("detection_image",Image, queue_size=1)
+        
+
+        model_zoo_path = rospy.get_param('~model_zoo_path', '~/tensorflow/models')
+        model_path = rospy.get_param('~model')
+
+        PATH_TO_LABELS = os.path.join(model_zoo_path, 'research/object_detection/data', 'mscoco_label_map.pbtxt')
+        PATH_TO_CKPT = model_path
         
         print("PATH to ckpt: " + PATH_TO_CKPT)
         print("PATH TO LABELS " + PATH_TO_LABELS)
