@@ -1,13 +1,12 @@
 <launch>
 
 	<node  name="detection_tensorflow" pkg="era_gazebo" type="detection_tensorflow.py" output="screen">
-
+	
 		<param name="use_sim_time" value="true" />
-
-
-		<param name="model" type="string" value="$(find era_gazebo)/models/ssd_mobilenet_v1_coco_2018_01_28/frozen_inference_graph.pb" />
 		
-		<param name="model_zoo_path" type="string" value="/home/nuc/local/ext/tensorflow/models"/>
+		<param name="model" type="string" value="$(find era_gazebo)/models/mask_rcnn_inception_v2_coco_2018_01_28/frozen_inference_graph.pb" />
+		
+		<param name="model_zoo_path" type="string" value="/home/varun/tensorflow/models"/>
 		
 		<remap from="image_input" to="/camera/color/image_raw" />
 
