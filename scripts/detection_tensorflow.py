@@ -185,6 +185,10 @@ class ObjectDetectionTF():
     
                 
     def imageCallback(self, msg):
+        #added imports for callback function
+        import object_detection
+        from object_detection.utils import ops
+
         cv_image = self._cv_bridge.imgmsg_to_cv2(msg, "bgr8")
 
         image = cv2.cvtColor(cv_image,cv2.COLOR_BGR2RGB)
@@ -203,23 +207,25 @@ class ObjectDetectionTF():
         detection_scores = self.detection_graph.get_tensor_by_name('detection_scores:0')
         detection_classes = self.detection_graph.get_tensor_by_name('detection_classes:0')
         num_detections = self.detection_graph.get_tensor_by_name('num_detections:0')
-        
+        detection_masks = self.detection_graph.get_tensor_by_name('detection_masks:0') #included masks from TF graph 
+
     # Actual detection.
-        (boxes, scores, classes, num) = self.sess.run(
-            [detection_boxes, detection_scores, detection_classes, num_detections],
+        (boxes, scores, classes, num, masks) = self.sess.run(
+            [detection_boxes, detection_scores, detection_classes, num_detections,detection_masks],
             feed_dict={image_tensor: image_np_expanded})
 
         boxes=np.squeeze(boxes)
         classes =np.squeeze(classes)
         scores = np.squeeze(scores)
-        
+        masks = np.squeeze(masks) #squeeze masks similar to boxes
+
         result_out = DetectionBoxList()
         result_out.header = msg.header
         dim = image.shape[0:2]
         height, width = dim[0], dim[1]
        
-        for bb, sc, cl in zip(boxes,scores,classes) :
-           
+        for bb, sc, cl, ma in zip(boxes,scores,classes,masks) :
+            mask_img = ma #mask of the object
             if(sc > .30):
                 pose = DetectionBox()
                 pose.left = int(bb[1]*width)
@@ -233,9 +239,27 @@ class ObjectDetectionTF():
 
                 pose.id = self.matcher.match_and_add_model(cropped_image, pose.type)
                 
+                #resize the mask accd to boxW and boxH
+                boxW = pose.right - pose.left #mask width
+                boxH = pose.bottom - pose.top #mask height
+                #interpolate mask of 15x15 to box dimensions and convert to binary mask
+                mask_img = cv2.resize(mask_img,(boxW,boxH),interpolation=cv2.INTER_NEAREST)
+                mask_img = (mask_img > 0.5) #binary mask of 0 or 1
+                #colors for the image masks
+                colors=[[0, 255, 0],[0, 0, 255],[255, 0, 0],[0, 255, 255],[255, 255, 0],[255, 0, 255],[80, 70, 180],[250, 80, 190],[245, 145, 50],[70, 150, 250],[50, 190, 190]]
+                #added few colors
+                colors = np.array(colors) #convert to array from list
+                color_selected = colors[np.random.randint(len(colors),size=1)] #randomly select one color for this object and value of the color
+                #mix the image with the color and update this only if the mask is enabled
+                img_seg_updated = ((0.4 * color_selected) + (0.6 * cropped_image)).astype("uint8") #combining the color with cropped image
+                for h in range(boxH): #box height
+                    for w in range(boxW): #box width
+                        if mask_img[h,w] == True: #if the mask is enabled then update the image with new mask generated
+                            image[pose.top+h,pose.left+w] = img_seg_updated[h,w] 
+
                 result_out.detection_list.append(pose)
 
-                cv2.rectangle(image, (pose.left, pose.top), (pose.right, pose.bottom), (255,0,0), 4, 1)
+                cv2.rectangle(image, (pose.left, pose.top), (pose.right, pose.bottom), (255,0,0), 2, 1) #decreased the thickness from 4 to 2
                 cv2.putText(image, str(pose.id), ( int(pose.left+30), int(pose.top+30) ), cv2.FONT_HERSHEY_SIMPLEX, 2.0,(255,0,0),5)
                 
                 #kp1, des1 = self.orb.detectAndCompute(crop_image, None)
@@ -275,4 +299,4 @@ if __name__ == '__main__':
     rospy.init_node('object_detection')
     obj_det = ObjectDetectionTF()
    
-    obj_det.run()
+obj_det.run()
