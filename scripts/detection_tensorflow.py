@@ -196,9 +196,10 @@ class ObjectDetectionTF():
                     #config.gpu_options.per_process_gpu_memory_fraction = 0.6
                 self.sess = tf.Session(config=config) 
                     
-            self._sub = rospy.Subscriber('image_input', Image, self.imageCallback, queue_size=1)
+            self._sub = rospy.Subscriber('image_input', Image, self.imageCallback, queue_size=1, buff_size=52428800)
             self._pub = rospy.Publisher('detected_objects', DetectionBoxList, queue_size=1)
             self.image_pub = rospy.Publisher("detection_image",Image, queue_size=1)
+            
             try:
                 detection_masks = self.detection_graph.get_tensor_by_name('detection_masks:0') 
             except:
