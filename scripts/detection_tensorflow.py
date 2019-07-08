@@ -48,14 +48,9 @@ import random
 # Path to frozen detection graph. This is the actual model that is used for the object detection.
 #PATH_TO_CKPT = '~/catkin_ws/src/era_gazebo/models/' + MODEL_NAME + '/frozen_inference_graph.pb'
 
-# List of the strings that is used to add correct label for each box.
-device = '/gpu:0'      #'/cpu:0' #at present 1 device is assumed, Set to cpu if you are using cpu else set to gpu 
+#device = '/cpu:0'      #'/cpu:0' #at present 1 device is assumed, Set to cpu if you are using cpu else set to gpu 
+#os.environ["CUDA_VISIBLE_DEVICES"]="-1" # -1 set no GPU visible
 
-if device == '/cpu:0':
-    os.environ["CUDA_VISIBLE_DEVICES"]="-1" # -1 set no GPU visible
-else:
-    os.environ["CUDA_VISIBLE_DEVICES"] = "0" # -1 set no GPU visible
-    
 mask_enabled = True #set to Flase for non-mask object detection and True for mask RCNN object detection
 
 NUM_CLASSES = 90
@@ -158,6 +153,16 @@ class ObjectDetectionTF():
 
         model_zoo_path = rospy.get_param('~model_zoo_path', '~/tensorflow/models')
         model_path = rospy.get_param('~model')
+        use_gpu = rospy.get_param('~use_gpu', False)
+        self.use_timers = rospy.get_param('~use_timers', False)
+
+        if use_gpu:
+            self.device = '/GPU:0'
+            os.environ["CUDA_VISIBLE_DEVICES"] = "0" 
+        else:
+            self.device = '/CPU:0'
+            os.environ["CUDA_VISIBLE_DEVICES"] = "-1" 
+
 
         PATH_TO_LABELS = os.path.join(model_zoo_path, 'research/object_detection/data', 'mscoco_label_map.pbtxt')
         PATH_TO_CKPT = model_path
@@ -167,7 +172,6 @@ class ObjectDetectionTF():
 
         #self.orb = cv2.xfeatures2d.SIFT_create()
         
-        self.device = device
         self.mask_enabled = mask_enabled
         self.matcher = ImageMatcher()
         
@@ -186,16 +190,22 @@ class ObjectDetectionTF():
                 
                 config = tf.ConfigProto() #log_device_placement=True)
                 
-                if self.device == '/gpu:0': #only for GPU this is valid
+                if use_gpu: #only for GPU this is valid
                     config.gpu_options.allow_growth=True  #this will allocate the memory during the run time
                     #to limit GPU memory of the card choose next option "per_process_gpu_memory_fraction"
                     #config.gpu_options.per_process_gpu_memory_fraction = 0.6
                 self.sess = tf.Session(config=config) 
                     
-            self._sub = rospy.Subscriber('image_input', Image, self.imageCallback, queue_size=1)
+            self._sub = rospy.Subscriber('image_input', Image, self.imageCallback, queue_size=1, buff_size=52428800)
             self._pub = rospy.Publisher('detected_objects', DetectionBoxList, queue_size=1)
             self.image_pub = rospy.Publisher("detection_image",Image, queue_size=1)
-    
+            
+            try:
+                detection_masks = self.detection_graph.get_tensor_by_name('detection_masks:0') 
+            except:
+                self.mask_enabled = False
+           
+
     def imageCallback(self, msg):
         #added imports for callback function
         #import object_detection
@@ -206,30 +216,28 @@ class ObjectDetectionTF():
             image_np = np.asarray(image)
             image_np_expanded = np.expand_dims(image_np, axis=0)
             
-            # Definite input and output Tensors for detection_graph
             image_tensor = self.detection_graph.get_tensor_by_name('image_tensor:0')
-            
-            # Each box represents a part of the image where a particular object was detected.
             detection_boxes = self.detection_graph.get_tensor_by_name('detection_boxes:0')
-            # Each score represent how level of confidence for each of the objects.
-            # Score is shown on the result image, together with the class label.
             detection_scores = self.detection_graph.get_tensor_by_name('detection_scores:0')
             detection_classes = self.detection_graph.get_tensor_by_name('detection_classes:0')
             num_detections = self.detection_graph.get_tensor_by_name('num_detections:0')
-            t1 = time.time()
-            if self.mask_enabled ==True:
+            
+            if self.use_timers: 
+                    t1 = time.time()
+            if self.mask_enabled:
                 detection_masks = self.detection_graph.get_tensor_by_name('detection_masks:0') #included masks from TF graph 
                 (boxes, scores, classes, num, masks) = self.sess.run(
                 [detection_boxes, detection_scores, detection_classes, num_detections,detection_masks],
                 feed_dict={image_tensor: image_np_expanded})
             else:
-                t1 = time.time()
                 (boxes, scores, classes, num) = self.sess.run(
                 [detection_boxes, detection_scores, detection_classes, num_detections],
                 feed_dict={image_tensor: image_np_expanded})
-            t2 = time.time()
-            print(' >>>>> Model name is here: >>>>>>', self.device)
-            print(' >>>>> Model inference time (in sec): >>>>>> ', t2-t1)
+            
+            if self.use_timers:
+                t2 = time.time()
+                print(' >>>>> Using: >>>>>>', self.device)
+                print(' >>>>> Model inference time (in sec): >>>>>> ', t2-t1)
 
             boxes=np.squeeze(boxes)
             classes =np.squeeze(classes)
@@ -316,3 +324,4 @@ if __name__ == '__main__':
     obj_det = ObjectDetectionTF()
    
 obj_det.run()
+
