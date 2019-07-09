@@ -268,6 +268,7 @@ class ObjectDetectionTF():
                     if self.mask_enabled == True: #runs when only mask is enabled
                         #resize the mask accd to boxW and boxH
                         ma = masks[i]  #get the present mask
+                        pose.mask_1d = ma.ravel() #keep mask in 1D array
                         boxW = pose.right - pose.left #mask width
                         boxH = pose.bottom - pose.top #mask height
                         #interpolate mask of 15x15 to box dimensions and convert to binary mask
