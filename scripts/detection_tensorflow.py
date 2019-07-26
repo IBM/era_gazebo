@@ -19,6 +19,8 @@
 
 
 import rospy
+#dynamic configure
+#import dynamic_reconfigure.client
 
 import sys
 from sensor_msgs.msg import Image
@@ -54,6 +56,12 @@ import random
 mask_enabled = True #set to Flase for non-mask object detection and True for mask RCNN object detection
 
 NUM_CLASSES = 90
+mask_threshold = 0.5
+
+#def maskthresholdcallback(config):
+#	rospy.loginfo("Config set to: ".format(**config))
+#	mask_threshold = config.mask_threshold
+#	print('>>>> mask_threshold is here',mask_threshold)
 
 class ImageMatcher():
 
@@ -251,10 +259,11 @@ class ObjectDetectionTF():
             dim = image.shape[0:2]
             height, width = dim[0], dim[1]
             
+	 
             i = 0
             for bb, sc, cl in zip(boxes,scores,classes) :
                 
-                if(sc > .30):
+                if(sc > .50):
                     pose = DetectionBox()
                     pose.left = int(bb[1]*width)
                     pose.right = int(bb[3]*width)
@@ -284,7 +293,7 @@ class ObjectDetectionTF():
                         #writing the maksed image to original image
                         for h in range(boxH): #box height
                             for w in range(boxW): #box width
-                                if mask_img[h,w] >0.5: #if the mask is enabled then update the image with new mask generated
+                                if mask_img[h,w] > mask_threshold: #if the mask is enabled then update the image with new mask generated
                                     image[pose.top+h,pose.left+w] = img_seg_updated[h,w] 
 
                     result_out.detection_list.append(pose)

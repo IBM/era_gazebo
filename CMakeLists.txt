@@ -31,7 +31,11 @@ find_package(catkin REQUIRED COMPONENTS
   cv_bridge
   image_geometry
   pcl_ros
+  dynamic_reconfigure
 )
+
+#new line for add cfg file
+generate_dynamic_reconfigure_options(cfg/test.cfg)
 
 # Depend on system install of Gazebo
 
@@ -97,7 +101,7 @@ target_link_libraries(ERAmsgInterpreter_node
 )
 
 add_Executable(og_labeler src/occupancy_grid_labeler.cpp)
-add_dependencies(og_labeler era_gazebo_generate_messages_cpp)
+add_dependencies(og_labeler era_gazebo_generate_messages_cpp era_gazebo_gencfg)
 target_link_libraries(og_labeler
   ${catkin_LIBRARIES}
   ${OpenCV_LIBRARIES} 

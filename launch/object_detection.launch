@@ -2,7 +2,7 @@
 
 	<node  name="detection_tensorflow" pkg="era_gazebo" type="detection_tensorflow.py" output="screen">
 	
-		<param name="use_sim_time" value="true" />
+		<param name="use_sim_time" value="false" />
 		<param name="use_gpu" value="false" />
 		<param name="use_timers" value="true"/>
 		<param name="model" type="string" value="$(find era_gazebo)/models/mask_rcnn_inception_v2_coco_2018_01_28/frozen_inference_graph.pb" />
