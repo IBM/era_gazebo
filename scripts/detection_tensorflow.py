@@ -53,7 +53,7 @@ import random
 #device = '/cpu:0'      #'/cpu:0' #at present 1 device is assumed, Set to cpu if you are using cpu else set to gpu 
 #os.environ["CUDA_VISIBLE_DEVICES"]="-1" # -1 set no GPU visible
 
-mask_enabled = True #set to Flase for non-mask object detection and True for mask RCNN object detection
+#mask_enabled = use_mask #set to Flase for non-mask object detection and True for mask RCNN object detection
 
 NUM_CLASSES = 90
 mask_threshold = 0.5
@@ -163,6 +163,7 @@ class ObjectDetectionTF():
         model_path = rospy.get_param('~model')
         use_gpu = rospy.get_param('~use_gpu', False)
         self.use_timers = rospy.get_param('~use_timers', False)
+        use_mask = rospy.get_param('~use_mask', False)
 
         if use_gpu:
             self.device = '/GPU:0'
@@ -180,7 +181,11 @@ class ObjectDetectionTF():
 
         #self.orb = cv2.xfeatures2d.SIFT_create()
         
-        self.mask_enabled = mask_enabled
+        #new part
+        if use_mask:
+            self.mask_enabled = use_mask #taken mask from launch file param
+         #end
+         
         self.matcher = ImageMatcher()
         
         with tf.device(self.device):
@@ -250,9 +255,13 @@ class ObjectDetectionTF():
             boxes=np.squeeze(boxes)
             classes =np.squeeze(classes)
             scores = np.squeeze(scores)
-                       
+             
+             #written for common code that reads mask from launch file
             if self.mask_enabled == True:
                 masks = np.squeeze(masks) #squeeze masks similar to boxes
+            else: 
+                masks = np.ones((int(num), 15,15), dtype=float)
+                
                 
             result_out = DetectionBoxList()
             result_out.header = msg.header
@@ -263,7 +272,7 @@ class ObjectDetectionTF():
             i = 0
             for bb, sc, cl in zip(boxes,scores,classes) :
                 
-                if(sc > .50):
+                if(sc > .30):
                     pose = DetectionBox()
                     pose.left = int(bb[1]*width)
                     pose.right = int(bb[3]*width)
@@ -274,12 +283,14 @@ class ObjectDetectionTF():
                     cropped_image = image[pose.top:pose.bottom, pose.left:pose.right]
                     pose.id = self.matcher.match_and_add_model(cropped_image, pose.type)
                     
-                    if self.mask_enabled == True: #runs when only mask is enabled
-                        #resize the mask accd to boxW and boxH
-                        ma = masks[i]  #get the present mask
-                        pose.mask_1d = ma.ravel() #keep mask in 1D array
-                        boxW = pose.right - pose.left #mask width
-                        boxH = pose.bottom - pose.top #mask height
+                    #if self.mask_enabled == True: #runs when only mask is enabled
+                    #resize the mask accd to boxW and boxH
+                    ma = masks[i]  #get the present mask
+                    pose.mask_1d = ma.ravel() #keep mask in 1D array
+                    boxW = pose.right - pose.left #mask width
+                    boxH = pose.bottom - pose.top #mask height
+                    
+                    if self.mask_enabled == True: #only for maskRCNN not for Mobile net
                         #interpolate mask of 15x15 to box dimensions and convert to binary mask
                         mask_img = cv2.resize(ma,(boxW,boxH),interpolation=cv2.INTER_NEAREST)
                         
