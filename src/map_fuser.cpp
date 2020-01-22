@@ -34,6 +34,9 @@ void callback(const nav_msgs::OccupancyGrid::ConstPtr& local_msg,
   
 	ROS_INFO("maps received");
 
+	if(local_msg->info.width >0 && local_msg->info.height >0 &&
+	   remote_msg->grid.info.width >0 && remote_msg->grid.info.height >0 ) {
+	
 	std::vector<nav_msgs::OccupancyGrid> grids;
 	grids.push_back(*local_msg);
 
@@ -43,7 +46,7 @@ void callback(const nav_msgs::OccupancyGrid::ConstPtr& local_msg,
 	GridPtr combined = occupancy_grid_utils::combineGrids(grids);
 
 	pub.publish(*combined);
-
+	}
 }
 
 

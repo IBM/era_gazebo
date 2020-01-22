@@ -31,7 +31,7 @@
   <node pkg="tf" type="static_transform_publisher" name="transform_publisher" args="0 0 0 0 0 0 /map /$(arg namespace)/odom 100"/>
 
   <node name="costmap_node" pkg="costmap_2d" type="costmap_2d_node" >
-    <rosparam file="$(find era_gazebo)/launch/costmap_2d.yaml" command="load" ns="costmap" />
+    <rosparam file="$(find era_gazebo)/launch/$(arg namespace)_costmap_2d.yaml" command="load" ns="costmap" />
     <remap from="costmap_node/costmap/costmap" to="local_map"/>
   </node>
 

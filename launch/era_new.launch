@@ -47,7 +47,9 @@
 		<arg name="remote_port" value="52001" />
     </include>
   </group>
+  
 
 
+ <node name="rviz" pkg="rviz" type="rviz" args="-d $(find era_gazebo)/rviz/era.rviz" output="screen" />
 
 </launch>
