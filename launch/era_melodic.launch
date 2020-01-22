@@ -1,17 +1,11 @@
 <launch>
 
-  <!-- General arguemnts -->
-  <arg name="prof" default="false"/>
-  <arg name="prof_output_filename" default="output.perf"/>
-  
-  <!-- Environment variables -->
-  <env name="ROSCONSOLE_FORMAT" value="[${severity}] [${node}]: ${message}" />
-  <env name="ROSCONSOLE_CONFIG_FILE" value="$(find era_gazebo)/launch/rosconsole.config" />
+  <arg name="world_file"  default="$(find era_gazebo)/worlds/era.world"/>
+  <arg name="gui" default="false"/>
+  <arg name="robot1_name" value="r0"/>
+  <arg name="robot2_name" value="r1"/>
 
 
-  <!-- Gazebo -->
-  <arg name="world_file" default="$(find era_gazebo)/worlds/era.world"/>
-  <arg name="gui" default="true"/>
   <include file="$(find era_gazebo)/worlds/empty_world.launch">
     <arg name="use_sim_time" value="true"/>
     <arg name="debug" value="false"/>
@@ -19,64 +13,43 @@
     <arg name="world_name" value="$(arg world_file)"/>
   </include>
 
-  <!-- First robot -->
-  <group ns="turtlebot1">
-    <arg name="model" default="$(env TURTLEBOT3_MODEL)" doc="model type [burger, waffle, waffle_pi]"/>
-    <arg name="x_pos_1" default="0.0"/>
-    <arg name="y_pos_1" default="-2.0"/>
-    <arg name="z_pos_1" default="0.0"/>
-    <arg name="yaw_1"   default="1.0"/>
 
-    <param name="robot_description" command="$(find xacro)/xacro.py $(find turtlebot3_description)/urdf/turtlebot3_$(arg model).urdf.xacro" />
-    <node name="spawn_urdf_1" pkg="gazebo_ros" type="spawn_model" args="-urdf -model r0 -x $(arg x_pos_1) -y $(arg y_pos_1) -z $(arg z_pos_1) -Y $(arg yaw_1) -param robot_description" />
-    <node pkg="robot_state_publisher" type="robot_state_publisher" name="robot_state_publisher_1">
-      <param name="publish_frequency" type="double" value="30.0" />
-    </node>
+  <group ns="$(arg robot1_name)">
+     <include file="$(find era_gazebo)/launch/robot.launch">
+      <arg name="namespace" value="$(arg robot1_name)" />
+      <arg name="initX" value="0" />
+      <arg name="initY" value="-2" />
+      <arg name="initZ" value="0" />
+     </include>
+
+     <include file="$(find era_gazebo)/launch/v2v.launch">
+     	<arg name="robot_name" value="$(arg robot1_name)" />
+     	<arg name="local_ip" value="127.0.0.1" />
+		<arg name="remote_ip" value="127.0.0.1" />
+		<arg name="local_port" value="52001" />
+		<arg name="remote_port" value="52002" />
+     </include>
   </group>
 
-  <!-- Second robot -->
-  <group ns="turtlebot2">
-    <arg name="model" default="$(env TURTLEBOT3_MODEL)" doc="model type [burger, waffle, waffle_pi]"/>
-    <arg name="x_pos_2" default="0.0"/>
-    <arg name="y_pos_2" default="1.0"/>
-    <arg name="z_pos_2" default="0.0"/>
-    <arg name="yaw_2" default="0.0"/>
+  <group ns="$(arg robot2_name)">
+    <include file="$(find era_gazebo)/launch/robot.launch">
+      <arg name="namespace" value="$(arg robot2_name)" />
+      <arg name="initX" value="1" />
+      <arg name="initY" value="0" />
+      <arg name="initZ" value="0" />
+    </include>
 
-    <param name="robot_description" command="$(find xacro)/xacro.py $(find turtlebot3_description)/urdf/turtlebot3_$(arg model).urdf.xacro" />
-    <node name="spawn_urdf" pkg="gazebo_ros" type="spawn_model" args="-urdf -model r1 -x $(arg x_pos_2) -y $(arg y_pos_2) -z $(arg z_pos_2) -Y $(arg yaw_2) -param robot_description" />
-
-    <node pkg="robot_state_publisher" type="robot_state_publisher" name="robot_state_publisher_2">
-      <param name="publish_frequency" type="double" value="30.0" />
-    </node>
+    <include file="$(find era_gazebo)/launch/v2v.launch">
+     	<arg name="robot_name" value="$(arg robot2_name)" />
+     	<arg name="local_ip" value="127.0.0.1" />
+		<arg name="remote_ip" value="127.0.0.1" />
+		<arg name="local_port" value="52002" />
+		<arg name="remote_port" value="52001" />
+    </include>
   </group>
-
-  <!-- Debugging tools -->
-  <node name="rviz" pkg="rviz" type="rviz" args="-d $(find era_gazebo)/rviz/era.rviz" output="screen" if="$(eval gui == true)"/>
-
-  <!-- Fake laser -->
-  <node pkg="nodelet" type="nodelet" name="laserscan_nodelet_manager" args="manager"/>
-  <node pkg="nodelet" type="nodelet" name="depthimage_to_laserscan"
-        args="load depthimage_to_laserscan/DepthImageToLaserScanNodelet laserscan_nodelet_manager">
-    <param name="scan_height" value="10"/>
-    <param name="output_frame_id" value="/camera_depth_frame"/>
-    <param name="range_min" value="0.45"/>
-    <remap from="image" to="/camera/depth/image_raw"/>
-    <remap from="scan" to="/camera_scan"/>
-  </node>
-
-  <node pkg="tf" type="static_transform_publisher" name="transform_publisher" args="0 0 0 0 0 0 /map /odom 100"/>
-
-
-<!-- Profiling tools -->
-  <node name="profile_era" pkg="era_gazebo" type="profile_era.py" args="-o $(arg prof_output_filename)" output="screen" if="$(eval prof == true)"/>
-
   
-  <!-- Multi-robot map merging -->
-  <!--
-  <node name="map_merge" pkg="multirobot_map_merge" type="map_merge">
-    <param name="known_init_poses" type="bool" value="false" />
-    <param name="world_frame" type="string" value="map" />
-  </node>
-  -->
-  
+
+
+ <node name="rviz" pkg="rviz" type="rviz" args="-d $(find era_gazebo)/rviz/era.rviz" output="screen" />
+
 </launch>
