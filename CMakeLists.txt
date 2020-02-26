@@ -103,5 +103,10 @@ target_link_libraries(og_labeler
   ${OpenCV_LIBRARIES} 
 )
 
-
+add_Executable(fake_laser src/fake_laser.cpp)
+add_dependencies(fake_laser era_gazebo_generate_messages_cpp)
+target_link_libraries(fake_laser
+  ${catkin_LIBRARIES}
+  ${OpenCV_LIBRARIES} 
+)
 

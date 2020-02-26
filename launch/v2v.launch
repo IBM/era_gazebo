@@ -1,6 +1,6 @@
 <launch>
 
-<arg name="robot_name" default="nuc"/>
+<arg name="robot_name" default="erebor"/>
 
 <arg name="urdf_file" default="$(find era_gazebo)/launch/simple_box.urdf" />
 
@@ -13,10 +13,10 @@
 <node pkg="era_gazebo" name="ERAmsgInterpreter_node" type="ERAmsgInterpreter_node" >
 </node>
 
-<arg name="local_ip" default="192.168.0.1" />
-<arg name="remote_ip" default="192.168.0.2" />
-<arg name="local_port" default="52001" />
-<arg name="remote_port" default="52002" />
+<arg name="local_ip" default="9.2.194.176" />
+<arg name="remote_ip" default="9.31.103.68" />
+<arg name="local_port" default="52002" />
+<arg name="remote_port" default="52001" />
 <arg name="namespace" default="$(arg robot_name)" />
 
 <node pkg="dsrc" name="wifi_transceiver"
