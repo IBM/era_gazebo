@@ -32,7 +32,7 @@ public:
 		n.getParam("tf_prefix", tf_prefix);
 		tf_filter = new tf::MessageFilter<nav_msgs::OccupancyGrid>(grid_sub, tf, tf_prefix+"/"+target_frame, 100);
 		tf_filter->registerCallback( boost::bind(&ERAmsgBuilder::callback, this, _1) );
-		pub = n.advertise<era_gazebo::ERAMsg>("transmit_msg", 10);
+		pub = n.advertise<era_gazebo::ERAMsg>("transmit_msg", 100);
 
 		n.getParam("ERAmsgBuilder_node/ID", out_msg.ID);
 		ROS_INFO_STREAM("ROBOT ID: " << out_msg.ID);
@@ -68,12 +68,14 @@ private:
    		
        	out_msg.header = grid_ptr->header;
 
+
+		pub.publish(out_msg);
 	};
 public:
 	void run()
 	{
 
-		ros::Rate r(10); //10Hz
+		ros::Rate r(100); //100Hz
 		while(ros::ok()) {
 			ros::spinOnce();
 
@@ -90,7 +92,7 @@ int main(int argc, char** argv)
   ros::init(argc, argv, "ERAmsgBuilder");
   
   ERAmsgBuilder t;
-  t.run();
-//  ros::spin();
+  //t.run();
+  ros::spin();
 
 }

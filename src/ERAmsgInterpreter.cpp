@@ -37,7 +37,7 @@ public:
 		gazebo_model_pub = n.advertise<gazebo_msgs::ModelState>("gazebo/set_model_state", 10);
 		spawn_srv = n.serviceClient<gazebo_msgs::SpawnModel>("/gazebo/spawn_urdf_model");
 
-		era_msg_pub = n.advertise<era_gazebo::ERAMsg>("external_occ_grids", 10);
+		era_msg_pub = n.advertise<era_gazebo::ERAMsg>("external_occ_grids", 100);
 
 		counter = 0;
 	}

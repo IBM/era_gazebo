@@ -8,12 +8,12 @@ int main(int argc, char** argv){
   ros::Publisher scan_pub = n.advertise<sensor_msgs::LaserScan>("scan", 50);
 
   unsigned int num_readings = 360*2;
-  double laser_frequency = 7;
+  double laser_frequency = 30;
   double ranges[num_readings];
   double intensities[num_readings];
 
   int count = 0;
-  ros::Rate r(7.0);
+  ros::Rate r(30.0);
   while(n.ok()){
     //generate some fake data for our laser scan
     for(unsigned int i = 0; i < num_readings; ++i){
