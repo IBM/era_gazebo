@@ -15,4 +15,4 @@ plugins:
   - {name: obstacles, type: "costmap_2d::ObstacleLayer"}
 obstacles:
   observation_sources: scan
-  scan: {data_type: LaserScan, sensor_frame: base_footprint, clearing: true, marking: true, topic: scan}
+  scan: {data_type: LaserScan, sensor_frame: base_footprint, clearing: true, marking: true, topic: fake_scan}

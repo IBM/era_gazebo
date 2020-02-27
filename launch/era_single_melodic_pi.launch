@@ -9,11 +9,15 @@
     <param name="publish_frequency" type="double" value="30.0" />
   </node>
   
-  <node name="fake_laser" pkg="era_gazebo" type="fake_laser" />
+  
+  <node name="fake_laser" pkg="era_gazebo" type="fake_laser" >
+   <remap from="scan" to="fake_scan"/>
+  </node>
 
+<!--
   <node pkg="tf" type="static_transform_publisher" name="transform_publisher_map" args="0 0 0 0 0 0 /map /odom 100"/>
-
-   <node pkg="tf" type="static_transform_publisher" name="transform_publisher_odom" args="0 0 0 0 0 0 /odom /base_footprint 100"/>
+-->
+   <node pkg="tf" type="static_transform_publisher" name="transform_publisher_odom" args="0 0 0 0 0 0  /odom /base_footprint 100"/>
 
   <node name="costmap_node" pkg="costmap_2d" type="costmap_2d_node" >
     <rosparam file="$(find era_gazebo)/launch/costmap_2d.yaml" command="load" ns="costmap" />
