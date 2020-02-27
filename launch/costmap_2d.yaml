@@ -7,7 +7,7 @@ always_send_full_costmap: true
 static_map: false
 width: 10.0
 height: 10.0
-resolution: 0.2
+resolution: 0.1
 obstacle_range: 10.0
 ray_trace_range: 10.0
 

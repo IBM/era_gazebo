@@ -15,8 +15,8 @@
 
 <arg name="local_ip" default="9.2.194.176" />
 <arg name="remote_ip" default="9.31.103.68" />
-<arg name="local_port" default="52002" />
-<arg name="remote_port" default="52001" />
+<arg name="local_port" default="52001" />
+<arg name="remote_port" default="52002" />
 <arg name="namespace" default="$(arg robot_name)" />
 
 <node pkg="dsrc" name="wifi_transceiver"
