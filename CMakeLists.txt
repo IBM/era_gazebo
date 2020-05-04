@@ -48,7 +48,6 @@ include_directories(${OpenCV_INCLUDE_DIRS})
 
 add_message_files(
   FILES
-  ERAOccupancyGrid.msg
   ERAMsg.msg
   DetectionBox.msg
   DetectionBoxList.msg
