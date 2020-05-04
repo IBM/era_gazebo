@@ -1,3 +1,4 @@
+<?xml version="1.0"?>
 <launch>
 
   <arg name="world_file"  default="$(find era_gazebo)/worlds/era.world"/>
@@ -7,14 +8,20 @@
   <arg name="y_pos" default="0.0"/>
   <arg name="z_pos" default="0.0"/>
 
-  <arg name="gui" default="false"/>
-  
+  <arg name="gui" default="true"/>
+  <arg name="debug" default="false"/>
+  <arg name="use_sim_time" default="true"/>
+  <arg name="headless" default="false"/>
+  <arg name="paused" default="false"/>
 
-  <include file="$(find era_gazebo)/worlds/empty_world.launch">
-    <arg name="use_sim_time" value="true"/>
-    <arg name="debug" value="false"/>
-    <arg name="gui" value="$(arg gui)" />
+
+  <include file="$(find gazebo_ros)/launch/empty_world.launch">
     <arg name="world_name" value="$(arg world_file)"/>
+    <arg name="debug" value="$(arg debug)" />
+    <arg name="gui" value="$(arg gui)" />
+    <arg name="paused" value="$(arg paused)"/>
+    <arg name="use_sim_time" value="$(arg use_sim_time)"/>
+    <arg name="headless" value="$(arg headless)"/>
   </include>
 
   <param name="robot_description" command="$(find xacro)/xacro $(find turtlebot3_description)/urdf/turtlebot3_$(arg model).urdf.xacro" />
@@ -39,7 +46,7 @@
   <node pkg="tf" type="static_transform_publisher" name="transform_publisher" args="0 0 0 0 0 0 /map /odom 100"/>
 
   <node name="costmap_node" pkg="costmap_2d" type="costmap_2d_node" >
-    <rosparam file="$(find era_gazebo)/launch/costmap_2d.yaml" command="load" ns="costmap" />
+    <rosparam file="$(find era_gazebo)/config/costmap_2d.yaml" command="load" ns="costmap" />
     <remap from="costmap_node/costmap/costmap" to="local_map"/>
   </node>
 
