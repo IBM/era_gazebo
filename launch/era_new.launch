@@ -1,12 +1,13 @@
+<?xml version="1.0"?>
 <launch>
 
   <arg name="world_file"  default="$(find era_gazebo)/worlds/era.world"/>
-  <arg name="gui" default="false"/>
+  <arg name="gui" default="true"/>
   <arg name="robot1_name" value="r0"/>
   <arg name="robot2_name" value="r1"/>
 
 
-  <include file="$(find era_gazebo)/worlds/empty_world.launch">
+  <include file="$(find gazebo_ros)/launch/empty_world.launch">
     <arg name="use_sim_time" value="true"/>
     <arg name="debug" value="false"/>
     <arg name="gui" value="$(arg gui)" />
@@ -51,5 +52,9 @@
 
 
  <node name="rviz" pkg="rviz" type="rviz" args="-d $(find era_gazebo)/rviz/era.rviz" output="screen" />
+
+<!-- Profiling tools -->
+<!--  <node name="profile_era" pkg="era_gazebo" type="profile_era.py" args="-o $(arg prof_output_filename)" output="screen" if="$(eval prof == true)"/>
+-->
 
 </launch>

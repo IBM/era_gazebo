@@ -33,11 +33,7 @@ find_package(catkin REQUIRED COMPONENTS
   pcl_ros
 )
 
-# Depend on system install of Gazebo
-
-#find_package(gazebo REQUIRED)
-
-link_directories(${GAZEBO_LIBRARY_DIRS})
+#link_directories(${GAZEBO_LIBRARY_DIRS})
 include_directories(${Boost_INCLUDE_DIR} ${catkin_INCLUDE_DIRS} ${GAZEBO_INCLUDE_DIRS}  ${LZ4_INCLUDE_DIR} include)
 
 find_package(OpenCV REQUIRED)
