@@ -17,7 +17,7 @@
 
   <group ns="$(arg robot1_name)">
      <include file="$(find era_gazebo)/launch/robot.launch">
-      <arg name="namespace" value="$(arg robot1_name)" />
+      <arg name="robot_name" value="$(arg robot1_name)" />
       <arg name="initX" value="0" />
       <arg name="initY" value="-2" />
       <arg name="initZ" value="0" />
@@ -34,7 +34,7 @@
 
   <group ns="$(arg robot2_name)">
     <include file="$(find era_gazebo)/launch/robot.launch">
-      <arg name="namespace" value="$(arg robot2_name)" />
+      <arg name="robot_name" value="$(arg robot2_name)" />
       <arg name="initX" value="1" />
       <arg name="initY" value="0" />
       <arg name="initZ" value="0" />
