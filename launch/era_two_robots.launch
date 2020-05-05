@@ -3,9 +3,10 @@
 
   <arg name="world_file"  default="$(find era_gazebo)/worlds/era.world"/>
   <arg name="gui" default="true"/>
-  <arg name="robot1_name" value="r0"/>
-  <arg name="robot2_name" value="r1"/>
-
+  <arg name="robot1_name" default="r0"/>
+  <arg name="robot2_name" default="r1"/>
+  <arg name="profile" default="false"/>
+  <arg name="profile_output" default="output.perf"/>
 
   <include file="$(find gazebo_ros)/launch/empty_world.launch">
     <arg name="use_sim_time" value="true"/>
@@ -51,10 +52,10 @@
   
 
 
- <node name="rviz" pkg="rviz" type="rviz" args="-d $(find era_gazebo)/rviz/era.rviz" output="screen" />
+<node name="rviz" pkg="rviz" type="rviz" args="-d $(find era_gazebo)/rviz/era.rviz" output="screen" />
 
 <!-- Profiling tools -->
-<!--  <node name="profile_era" pkg="era_gazebo" type="profile_era.py" args="-o $(arg prof_output_filename)" output="screen" if="$(eval prof == true)"/>
--->
+<node name="profile_era" pkg="era_gazebo" type="profile_era.py" args="-o $(arg profile_output)" output="screen" if="$(eval profile == true)"/>
+
 
 </launch>
