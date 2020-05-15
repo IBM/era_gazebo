@@ -32,6 +32,7 @@
     <arg name='fixed_delta_seconds' value='$(arg fixed_delta_seconds)'/>
   </include>
 
+<!-- VEHICLE 1 -->
 
   <include file="$(find carla_ego_vehicle)/launch/carla_example_ego_vehicle.launch">
     <arg name='host' value='$(arg host)'/>
@@ -46,7 +47,13 @@
     <arg name='role_name' value='$(arg role_name_1)'/>
   </include>
 
+  <node name="costmap_node_$(arg role_name_1)" pkg="costmap_2d" type="costmap_2d_node" >
+    <rosparam file="$(find era_gazebo)/config/$(arg role_name_1)_costmap_2d.yaml" command="load" ns="costmap" />
+    <remap from="costmap_node_$(arg role_name_1)/costmap/costmap" to="carla$(arg role_name_1)/local_map"/>
+  </node>
 
+ 
+<!-- VEHICLE 2 -->
 
 
   <include file="$(find carla_ego_vehicle)/launch/carla_example_ego_vehicle.launch">
@@ -62,7 +69,10 @@
     <arg name='role_name' value='$(arg role_name_2)'/>
   </include>
 
-
+  <node name="costmap_node_$(arg role_name_2)" pkg="costmap_2d" type="costmap_2d_node" >
+    <rosparam file="$(find era_gazebo)/config/$(arg role_name_2)_costmap_2d.yaml" command="load" ns="costmap" />
+    <remap from="costmap_node_$(arg role_name_2)/costmap/costmap" to="carla$(arg role_name_2)/local_map"/>
+  </node>
  
 
 </launch>
