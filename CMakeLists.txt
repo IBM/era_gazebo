@@ -33,22 +33,14 @@ find_package(catkin REQUIRED COMPONENTS
   pcl_ros
 )
 
-# Depend on system install of Gazebo
-
-#find_package(gazebo REQUIRED)
-
-link_directories(${GAZEBO_LIBRARY_DIRS})
+#link_directories(${GAZEBO_LIBRARY_DIRS})
 include_directories(${Boost_INCLUDE_DIR} ${catkin_INCLUDE_DIRS} ${GAZEBO_INCLUDE_DIRS}  ${LZ4_INCLUDE_DIR} include)
-
-#add_library(${PROJECT_NAME} src/velodyne_plugin.cc)
-#target_link_libraries(${PROJECT_NAME} ${catkin_LIBRARIES} ${GAZEBO_LIBRARIES})
 
 find_package(OpenCV REQUIRED)
 include_directories(${OpenCV_INCLUDE_DIRS})
 
 add_message_files(
   FILES
-  ERAOccupancyGrid.msg
   ERAMsg.msg
   DetectionBox.msg
   DetectionBoxList.msg
@@ -78,11 +70,6 @@ catkin_package(
 add_executable(map_fuser src/map_fuser.cpp src/combine_grids.cpp src/coordinate_conversions.cpp)
 target_link_libraries(map_fuser ${catkin_LIBRARIES})
 add_dependencies(map_fuser era_gazebo_generate_messages_eus)
-
-## 'Message Generator' node
-add_executable(message_generator src/message_generator.cpp)
-target_link_libraries(message_generator ${catkin_LIBRARIES})
-add_dependencies(message_generator era_gazebo_generate_messages_eus)
 
 add_executable(ERAmsgBuilder_node src/ERAmsgBuilder.cpp)
 add_dependencies(ERAmsgBuilder_node era_gazebo_generate_messages_cpp)

@@ -1,16 +1,17 @@
+<?xml version="1.0"?>
 <launch>
 
   <arg name="model" default="waffle_pi" doc="model type [burger, waffle, waffle_pi]"/>
   <arg name="initX" default="0" />
   <arg name="initY" default="0" />
   <arg name="initZ" default="0" />
-  <arg name="namespace" default="r0" />
+  <arg name="robot_name" default="robot" />
 
-  <param name="tf_prefix" value="$(arg namespace)"/>
+  <param name="tf_prefix" value="$(arg robot_name)"/>
 
   <param name="robot_description" command="$(find xacro)/xacro $(find turtlebot3_description)/urdf/turtlebot3_$(arg model).urdf.xacro" />
 
-  <node pkg="gazebo_ros" type="spawn_model" name="spawn_urdf" args="-urdf -model turtlebot3_$(arg model) -x $(arg initX) -y $(arg initY) -z $(arg initZ) -param robot_description -model $(arg namespace)" />
+  <node pkg="gazebo_ros" type="spawn_model" name="spawn_urdf" args="-urdf -model turtlebot3_$(arg model) -x $(arg initX) -y $(arg initY) -z $(arg initZ) -param robot_description -model $(arg robot_name)" />
 
   
   <node pkg="robot_state_publisher" type="robot_state_publisher" name="robot_state_publisher">
@@ -28,10 +29,10 @@
     <remap from="scan" to="scan"/>
   </node>
 
-  <node pkg="tf" type="static_transform_publisher" name="transform_publisher" args="0 0 0 0 0 0 /map /$(arg namespace)/odom 100"/>
+  <node pkg="tf" type="static_transform_publisher" name="transform_publisher" args="0 0 0 0 0 0 /map /$(arg robot_name)/odom 100"/>
 
   <node name="costmap_node" pkg="costmap_2d" type="costmap_2d_node" >
-    <rosparam file="$(find era_gazebo)/launch/$(arg namespace)_costmap_2d.yaml" command="load" ns="costmap" />
+    <rosparam file="$(find era_gazebo)/config/$(arg robot_name)_costmap_2d.yaml" command="load" ns="costmap" />
     <remap from="costmap_node/costmap/costmap" to="local_map"/>
   </node>
 

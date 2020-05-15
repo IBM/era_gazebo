@@ -1,0 +1,78 @@
+<?xml version="1.0"?>
+<launch>
+  <!-- CARLA connection -->
+  <arg name='host' default='localhost'/>
+  <arg name='port' default='2000'/>
+  <arg name='timeout' default='5'/>
+
+  <!-- Ego vehicle -->
+  <arg name='role_name_1' default='hero1'/>
+  <arg name='role_name_2' default='hero2'/>
+ 
+
+  <arg name="vehicle_filter" default='vehicle.toyota.prius'/>
+  <arg name="spawn_point" default=""/><!-- use comma separated format "x,y,z,roll,pitch,yaw" -->
+
+  <!-- Map to load on startup (either a predefined CARLA town (e.g. 'Town01'), or a OpenDRIVE map file) -->
+  <arg name="town" default='Town10HD'/>
+
+  <!-- Synchronous mode-->
+  <arg name='synchronous_mode' default=''/>
+  <arg name='synchronous_mode_wait_for_vehicle_control_command' default=''/>
+  <arg name='fixed_delta_seconds' default=''/>
+
+
+  <include file="$(find carla_ros_bridge)/launch/carla_ros_bridge.launch">
+    <arg name='host' value='$(arg host)'/>
+    <arg name='port' value='$(arg port)'/>
+    <arg name='town' value='$(arg town)'/>
+    <arg name='timeout' value='$(arg timeout)'/>
+    <arg name='synchronous_mode' value='$(arg synchronous_mode)'/>
+    <arg name='synchronous_mode_wait_for_vehicle_control_command' value='$(arg synchronous_mode_wait_for_vehicle_control_command)'/>
+    <arg name='fixed_delta_seconds' value='$(arg fixed_delta_seconds)'/>
+  </include>
+
+<!-- VEHICLE 1 -->
+
+  <include file="$(find carla_ego_vehicle)/launch/carla_example_ego_vehicle.launch">
+    <arg name='host' value='$(arg host)'/>
+    <arg name='port' value='$(arg port)'/>
+    <arg name='timeout' value='$(arg timeout)'/>
+    <arg name="vehicle_filter" value='$(arg vehicle_filter)'/>
+    <arg name='role_name' value='$(arg role_name_1)'/>
+    <arg name="spawn_point" value="$(arg spawn_point)"/>
+  </include>
+
+   <include file="$(find carla_manual_control)/launch/carla_manual_control.launch">
+    <arg name='role_name' value='$(arg role_name_1)'/>
+  </include>
+
+  <node name="costmap_node_$(arg role_name_1)" pkg="costmap_2d" type="costmap_2d_node" >
+    <rosparam file="$(find era_gazebo)/config/$(arg role_name_1)_costmap_2d.yaml" command="load" ns="costmap" />
+    <remap from="costmap_node_$(arg role_name_1)/costmap/costmap" to="carla$(arg role_name_1)/local_map"/>
+  </node>
+
+ 
+<!-- VEHICLE 2 -->
+
+
+  <include file="$(find carla_ego_vehicle)/launch/carla_example_ego_vehicle.launch">
+    <arg name='host' value='$(arg host)'/>
+    <arg name='port' value='$(arg port)'/>
+    <arg name='timeout' value='$(arg timeout)'/>
+    <arg name="vehicle_filter" value='$(arg vehicle_filter)'/>
+    <arg name='role_name' value='$(arg role_name_2)'/>
+    <arg name="spawn_point" value="$(arg spawn_point)"/>
+  </include>
+
+   <include file="$(find carla_manual_control)/launch/carla_manual_control.launch">
+    <arg name='role_name' value='$(arg role_name_2)'/>
+  </include>
+
+  <node name="costmap_node_$(arg role_name_2)" pkg="costmap_2d" type="costmap_2d_node" >
+    <rosparam file="$(find era_gazebo)/config/$(arg role_name_2)_costmap_2d.yaml" command="load" ns="costmap" />
+    <remap from="costmap_node_$(arg role_name_2)/costmap/costmap" to="carla$(arg role_name_2)/local_map"/>
+  </node>
+ 
+
+</launch>

@@ -1,8 +1,9 @@
+<?xml version="1.0"?>
 <launch>
 
 <arg name="robot_name" default="erebor"/>
 
-<arg name="urdf_file" default="$(find era_gazebo)/launch/simple_box.urdf" />
+<arg name="urdf_file" default="$(find era_gazebo)/urdf/simple_box.urdf" />
 
 <param name="simple_box_description" textfile="$(arg urdf_file)" />
 
