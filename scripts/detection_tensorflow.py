@@ -28,9 +28,21 @@ from era_gazebo.msg import DetectionBoxList, DetectionBox
 import cv2
 import numpy as np
 import os
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
+#import tensorflow as tf
 import time
 import random
+
+
+from object_detection.utils import ops as utils_ops
+from object_detection.utils import label_map_util
+from object_detection.utils import visualization_utils as vis_util
+
+# patch tf1 into `utils.ops`
+utils_ops.tf = tf.compat.v1
+
+# Patch the location of gfile
+tf.gfile = tf.io.gfile
 
 #sys.path.append('/home/nuc/local/ext/tensorflow/models/research/object_detection')
 
@@ -51,7 +63,9 @@ import random
 #device = '/cpu:0'      #'/cpu:0' #at present 1 device is assumed, Set to cpu if you are using cpu else set to gpu 
 #os.environ["CUDA_VISIBLE_DEVICES"]="-1" # -1 set no GPU visible
 
-mask_enabled = True #set to Flase for non-mask object detection and True for mask RCNN object detection
+mask_enabled = False #set to Flase for non-mask object detection and True for mask RCNN object detection
+gpu_devices = tf.config.experimental.list_physical_devices('GPU')
+for device in gpu_devices: tf.config.experimental.set_memory_growth(device, True)
 
 NUM_CLASSES = 90
 
@@ -146,10 +160,6 @@ class ObjectDetectionTF():
         self._cv_bridge = CvBridge()
 
 
-        import object_detection
-        from object_detection.utils import ops
-        from object_detection.utils import label_map_util
-        from object_detection.utils import visualization_utils as vis_util
 
         model_zoo_path = rospy.get_param('~model_zoo_path', '~/tensorflow/models')
         model_path = rospy.get_param('~model')
@@ -185,9 +195,13 @@ class ObjectDetectionTF():
                     tf.import_graph_def(od_graph_def, name='')
                     
                 label_map = label_map_util.load_labelmap(PATH_TO_LABELS)
-                categories = label_map_util.convert_label_map_to_categories(label_map, max_num_classes=NUM_CLASSES, use_display_name=True)
-                self.category_index = label_map_util.create_category_index(categories)
+                #categories = label_map_util.convert_label_map_to_categories(label_map, max_num_classes=NUM_CLASSES, use_display_name=True)
+                #self.category_index = label_map_util.create_category_index(categories)
                 
+                self.category_index = label_map_util.create_category_index_from_labelmap(PATH_TO_LABELS, use_display_name=True)
+
+
+
                 config = tf.ConfigProto() #log_device_placement=True)
                 
                 if use_gpu: #only for GPU this is valid
