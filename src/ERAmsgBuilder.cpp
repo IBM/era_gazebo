@@ -26,16 +26,18 @@
 class ERAmsgBuilder
 {
 public:
-	ERAmsgBuilder(): tf(), target_frame("base_footprint") 
+	ERAmsgBuilder(): tf() 
 	{
 		grid_sub.subscribe(n, "local_map", 100);
 		n.getParam("tf_prefix", tf_prefix);
-		tf_filter = new tf::MessageFilter<nav_msgs::OccupancyGrid>(grid_sub, tf, tf_prefix+"/"+target_frame, 100);
+		n.param<std::string>("ERAmsgBuilder_node/map_frame", map_frame, "/map");
+		n.param<std::string>("ERAmsgBuilder_node/robot_base_frame", base_frame, "base_footprint");
+
+		tf_filter = new tf::MessageFilter<nav_msgs::OccupancyGrid>(grid_sub, tf, tf_prefix+"/"+base_frame, 100);
 		tf_filter->registerCallback( boost::bind(&ERAmsgBuilder::callback, this, _1) );
 		pub = n.advertise<era_gazebo::ERAMsg>("transmit_msg", 100);
 
-		n.getParam("ERAmsgBuilder_node/ID", out_msg.ID);
-		ROS_INFO_STREAM("ROBOT ID: " << out_msg.ID);
+		n.getParam("ERAmsgBuilder_node/ID", out_msg.ID);	
 	}
 private:
 	message_filters::Subscriber<nav_msgs::OccupancyGrid> grid_sub;
@@ -43,8 +45,9 @@ private:
 	tf::MessageFilter<nav_msgs::OccupancyGrid> * tf_filter;
 	ros::NodeHandle n;
 	ros::Publisher pub;
-	std::string target_frame;
-      	std::string tf_prefix;
+	std::string map_frame, base_frame;
+    std::string tf_prefix;
+
 	era_gazebo::ERAMsg out_msg;
 
 	void callback(const boost::shared_ptr<const nav_msgs::OccupancyGrid>& grid_ptr) 
@@ -52,7 +55,7 @@ private:
 		tf::StampedTransform transform;
 		
     	try{
-      		 tf.lookupTransform("/map", tf_prefix+"/base_footprint",  
+      		 tf.lookupTransform(map_frame, tf_prefix+base_frame,  
                                 ros::Time(grid_ptr->header.stamp), transform);
     		}
     	catch (tf::TransformException ex){

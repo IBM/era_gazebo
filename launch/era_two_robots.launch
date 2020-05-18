@@ -27,9 +27,11 @@
      <include file="$(find era_gazebo)/launch/v2v.launch">
      	<arg name="robot_name" value="$(arg robot1_name)" />
      	<arg name="local_ip" value="127.0.0.1" />
-		<arg name="remote_ip" value="127.0.0.1" />
-		<arg name="local_port" value="52001" />
-		<arg name="remote_port" value="52002" />
+		  <arg name="remote_ip" value="127.0.0.1" />
+		  <arg name="local_port" value="52001" />
+		  <arg name="remote_port" value="52002" />
+      <arg name="robot_base_frame" value="base_foorprint" />
+      <arg name="map_frame" value="/map" />
      </include>
   </group>
 
@@ -44,9 +46,11 @@
     <include file="$(find era_gazebo)/launch/v2v.launch">
      	<arg name="robot_name" value="$(arg robot2_name)" />
      	<arg name="local_ip" value="127.0.0.1" />
-		<arg name="remote_ip" value="127.0.0.1" />
-		<arg name="local_port" value="52002" />
-		<arg name="remote_port" value="52001" />
+		  <arg name="remote_ip" value="127.0.0.1" />
+		  <arg name="local_port" value="52002" />
+		  <arg name="remote_port" value="52001" />
+      <arg name="robot_base_frame" value="base_foorprint" />
+      <arg name="map_frame" value="/map" />
     </include>
   </group>
   

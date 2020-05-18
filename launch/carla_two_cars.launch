@@ -9,6 +9,8 @@
   <arg name='role_name_1' default='hero1'/>
   <arg name='role_name_2' default='hero2'/>
  
+  <arg name='map_frame' default='/map'/>
+
 
   <arg name="vehicle_filter" default='vehicle.toyota.prius'/>
   <arg name="spawn_point" default=""/><!-- use comma separated format "x,y,z,roll,pitch,yaw" -->
@@ -60,6 +62,8 @@
     <arg name="remote_ip" value="127.0.0.1" />
     <arg name="local_port" value="52001" />
     <arg name="remote_port" value="52002" />
+    <arg name="robot_base_frame" value="$(arg role_name_1)" />
+    <arg name="map_frame" value="$(arg map_frame)" />
   </include>
 
 </group>
@@ -93,6 +97,8 @@
     <arg name="remote_ip" value="127.0.0.1" />
     <arg name="local_port" value="52002" />
     <arg name="remote_port" value="52001" />
+    <arg name="robot_base_frame" value="$(arg role_name_2)" />
+    <arg name="map_frame" value="$(arg map_frame)" />
   </include>
 
 </group> 
