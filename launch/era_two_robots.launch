@@ -32,6 +32,7 @@
 		  <arg name="remote_port" value="52002" />
       <arg name="robot_base_frame" value="base_foorprint" />
       <arg name="map_frame" value="/map" />
+      <arg name="use_gazebo" value="true" />
      </include>
   </group>
 
@@ -51,6 +52,7 @@
 		  <arg name="remote_port" value="52001" />
       <arg name="robot_base_frame" value="base_foorprint" />
       <arg name="map_frame" value="/map" />
+      <arg name="use_gazebo" value="true" />
     </include>
   </group>
   

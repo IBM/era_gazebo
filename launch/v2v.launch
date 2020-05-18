@@ -4,6 +4,7 @@
 <arg name="robot_name" default="erebor"/>
 <arg name="robot_base_frame" default="base_footprint"/>
 <arg name="map_frame" default="/map"/>
+<arg name="use_gazebo" default="false"/>
 
 <arg name="urdf_file" default="$(find era_gazebo)/urdf/simple_box.urdf" />
 
@@ -16,6 +17,7 @@
 </node>
 
 <node pkg="era_gazebo" name="ERAmsgInterpreter_node" type="ERAmsgInterpreter_node" >
+  <param name="use_gazebo" value="$(arg use_gazebo)"/>
 </node>
 
 <arg name="local_ip" default="9.2.194.176" />

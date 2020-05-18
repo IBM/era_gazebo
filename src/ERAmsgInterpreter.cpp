@@ -33,9 +33,13 @@ public:
 	ERAmsgInterpreter()
 	{
 		era_msg_sub = n.subscribe("receive_msg", 100, &ERAmsgInterpreter::callback, this);
-		gazebo_model_sub = n.subscribe("/gazebo/model_states", 100, &ERAmsgInterpreter::gazebo_model_callback, this);
-		gazebo_model_pub = n.advertise<gazebo_msgs::ModelState>("gazebo/set_model_state", 10);
-		spawn_srv = n.serviceClient<gazebo_msgs::SpawnModel>("/gazebo/spawn_urdf_model");
+		n.param<bool>("ERAmsgBuilder_node/use_gazebo", use_gazebo, false);
+
+		if(use_gazebo) {
+			gazebo_model_sub = n.subscribe("/gazebo/model_states", 100, &ERAmsgInterpreter::gazebo_model_callback, this);
+			gazebo_model_pub = n.advertise<gazebo_msgs::ModelState>("gazebo/set_model_state", 10);
+			spawn_srv = n.serviceClient<gazebo_msgs::SpawnModel>("/gazebo/spawn_urdf_model");
+		}
 
 		era_msg_pub = n.advertise<era_gazebo::ERAMsg>("external_occ_grids", 100);
 
@@ -50,6 +54,7 @@ private:
 	ros::Publisher era_msg_pub;
 	ros::ServiceClient spawn_srv;
 	vector<string> current_models;
+	bool use_gazebo;
 	unsigned int counter;
 
 	void callback(const boost::shared_ptr<const era_gazebo::ERAMsg>& msg)
@@ -57,44 +62,46 @@ private:
 		//ROS_INFO_STREAM("Received a new message. Robot Name: " << msg->ID);
 
 		//Check if the robot exist
-		vector<string>::iterator it = find (current_models.begin(), current_models.end(), msg->ID);
-		if (it != current_models.end()) {
-		    // Found. We move it
-			gazebo_msgs::ModelState state_msg;
+		if(use_gazebo) {
+			vector<string>::iterator it = find (current_models.begin(), current_models.end(), msg->ID);
+			if (it != current_models.end()) {
+			    // Found. We move it
+				gazebo_msgs::ModelState state_msg;
 
-			state_msg.model_name = msg->ID;
-			state_msg.pose = msg->pose;
+				state_msg.model_name = msg->ID;
+				state_msg.pose = msg->pose;
 
-			state_msg.twist.linear.x = 0;
-			state_msg.twist.linear.y = 0;
-			state_msg.twist.linear.z = 0;
-			state_msg.twist.angular.x = 0;
-			state_msg.twist.angular.y = 0;
-			state_msg.twist.angular.z = 0;
+				state_msg.twist.linear.x = 0;
+				state_msg.twist.linear.y = 0;
+				state_msg.twist.linear.z = 0;
+				state_msg.twist.angular.x = 0;
+				state_msg.twist.angular.y = 0;
+				state_msg.twist.angular.z = 0;
 
-			state_msg.reference_frame = "world";
+				state_msg.reference_frame = "world";
 
-			gazebo_model_pub.publish(state_msg);
-		}
-		else {
-			// Not Found. We spawn it
-			gazebo_msgs::SpawnModel spawn_msg;
-
-			spawn_msg.request.model_name = msg->ID;
-			ROS_ERROR_STREAM(spawn_msg.request.model_name);
-			n.getParam("simple_box_description", spawn_msg.request.model_xml);
-			//ROS_ERROR_STREAM(spawn_msg.request.model_xml);
-
-			spawn_msg.request.initial_pose = msg->pose;
-			spawn_msg.request.reference_frame = "";
-
-			if(spawn_srv.call(spawn_msg)) {
-				ROS_INFO_STREAM("Robot " << msg->ID << " spawned in Gazebo");
+				gazebo_model_pub.publish(state_msg);
 			}
 			else {
-				ROS_INFO_STREAM("Cannot spawn " << msg->ID);
-			}
+				// Not Found. We spawn it
+				gazebo_msgs::SpawnModel spawn_msg;
 
+				spawn_msg.request.model_name = msg->ID;
+				ROS_ERROR_STREAM(spawn_msg.request.model_name);
+				n.getParam("simple_box_description", spawn_msg.request.model_xml);
+				//ROS_ERROR_STREAM(spawn_msg.request.model_xml);
+
+				spawn_msg.request.initial_pose = msg->pose;
+				spawn_msg.request.reference_frame = "";
+
+				if(spawn_srv.call(spawn_msg)) {
+					ROS_INFO_STREAM("Robot " << msg->ID << " spawned in Gazebo");
+				}
+				else {
+					ROS_INFO_STREAM("Cannot spawn " << msg->ID);
+				}
+
+			}
 		}
 		era_gazebo::ERAMsg stamped_msg = *msg;
 		stamped_msg.header.stamp = ros::Time::now(); //this is debatable. We restamp the incoming package with current time. ROS 2.0 might have a better solution
