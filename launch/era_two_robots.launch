@@ -30,7 +30,7 @@
 		  <arg name="remote_ip" value="127.0.0.1" />
 		  <arg name="local_port" value="52001" />
 		  <arg name="remote_port" value="52002" />
-      <arg name="robot_base_frame" value="base_foorprint" />
+      <arg name="robot_base_frame" value="base_footprint" />
       <arg name="map_frame" value="/map" />
       <arg name="use_gazebo" value="true" />
      </include>
@@ -50,7 +50,7 @@
 		  <arg name="remote_ip" value="127.0.0.1" />
 		  <arg name="local_port" value="52002" />
 		  <arg name="remote_port" value="52001" />
-      <arg name="robot_base_frame" value="base_foorprint" />
+      <arg name="robot_base_frame" value="base_footprint" />
       <arg name="map_frame" value="/map" />
       <arg name="use_gazebo" value="true" />
     </include>
