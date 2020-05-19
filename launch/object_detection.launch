@@ -6,13 +6,13 @@
 	<node  name="detection_tensorflow" pkg="era_gazebo" type="detection_tensorflow.py" output="screen">
 	
 		<param name="use_gpu" value="true" />
-		<param name="use_timers" value="true"/>
+		<param name="use_timers" value="false"/>
+		<param name="detection_treshold" value="0.8"/>
+
 		<param name="model" type="string" value="$(find era_gazebo)/models/ssd_mobilenet_v2_coco_2018_03_29/frozen_inference_graph.pb" />
 		
 		<param name="model_zoo_path" type="string" value="$(optenv HOME)/local/ext/tensorflow/models"/>
 		
 		<remap from="image_input" to="$(arg image_topic)" />
-
-	</node>
 
 </launch>

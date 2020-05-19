@@ -2,7 +2,7 @@
 <launch>
 
   <arg name='enable_v2v' default='false'/>
-  <arg name='enable_detection' default='true'/>
+  <arg name='enable_detection' default='false'/>
  
   <!-- CARLA connection -->
   <arg name='host' default='localhost'/>
