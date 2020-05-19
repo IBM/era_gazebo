@@ -1,5 +1,9 @@
 <?xml version="1.0"?>
 <launch>
+
+  <arg name='enable_v2v' default='false'/>
+  <arg name='enable_detection' default='false'/>
+ 
   <!-- CARLA connection -->
   <arg name='host' default='localhost'/>
   <arg name='port' default='2000'/>
@@ -55,16 +59,23 @@
     <remap from="costmap_node_$(arg role_name_1)/costmap/costmap" to="local_map"/>
   </node>
 
+  <group if="$(arg enable_v2v)">
+    <include file="$(find era_gazebo)/launch/v2v.launch">
+      <arg name="robot_name" value="$(arg role_name_1)" />
+     <arg name="local_ip" value="127.0.0.1" />
+     <arg name="remote_ip" value="127.0.0.1" />
+      <arg name="local_port" value="52001" />
+      <arg name="remote_port" value="52002" />
+      <arg name="robot_base_frame" value="$(arg role_name_1)" />
+      <arg name="map_frame" value="$(arg map_frame)" />
+    </include>
+  </group>
 
-  <include file="$(find era_gazebo)/launch/v2v.launch">
-    <arg name="robot_name" value="$(arg role_name_1)" />
-    <arg name="local_ip" value="127.0.0.1" />
-    <arg name="remote_ip" value="127.0.0.1" />
-    <arg name="local_port" value="52001" />
-    <arg name="remote_port" value="52002" />
-    <arg name="robot_base_frame" value="$(arg role_name_1)" />
-    <arg name="map_frame" value="$(arg map_frame)" />
-  </include>
+  <group if="$(arg enable_detection)">
+    <include file="$(find era_gazebo)/launch/object_detection.launch">
+      <arg name="image_topic" value="/carla/$(arg role_name_1)/camera/rgb/front/image_color"/>
+    </include>
+  </group>
 
 </group>
  
@@ -90,16 +101,24 @@
     <remap from="costmap_node_$(arg role_name_2)/costmap/costmap" to="local_map"/>
   </node>
 
+  <group if="$(arg enable_v2v)">
+    <include file="$(find era_gazebo)/launch/v2v.launch">
+      <arg name="robot_name" value="$(arg role_name_2)" />
+      <arg name="local_ip" value="127.0.0.1" />
+      <arg name="remote_ip" value="127.0.0.1" />
+      <arg name="local_port" value="52002" />
+      <arg name="remote_port" value="52001" />
+      <arg name="robot_base_frame" value="$(arg role_name_2)" />
+      <arg name="map_frame" value="$(arg map_frame)" />
+    </include>
+  </group>
 
-  <include file="$(find era_gazebo)/launch/v2v.launch">
-    <arg name="robot_name" value="$(arg role_name_2)" />
-    <arg name="local_ip" value="127.0.0.1" />
-    <arg name="remote_ip" value="127.0.0.1" />
-    <arg name="local_port" value="52002" />
-    <arg name="remote_port" value="52001" />
-    <arg name="robot_base_frame" value="$(arg role_name_2)" />
-    <arg name="map_frame" value="$(arg map_frame)" />
-  </include>
+  <group if="$(arg enable_detection)">
+    <include file="$(find era_gazebo)/launch/object_detection.launch">
+      <arg name="image_topic" value="/carla/$(arg role_name_2)/camera/rgb/front/image_color"/>
+    </include>
+  </group>
+
 
 </group> 
 
