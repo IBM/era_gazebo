@@ -14,5 +14,5 @@
 		<param name="model_zoo_path" type="string" value="$(optenv HOME)/local/ext/tensorflow/models"/>
 		
 		<remap from="image_input" to="$(arg image_topic)" />
-
+	</node>
 </launch>
