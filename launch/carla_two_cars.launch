@@ -1,8 +1,9 @@
 <?xml version="1.0"?>
 <launch>
 
-  <arg name='enable_v2v' default='false'/>
-  <arg name='enable_detection' default='false'/>
+  <arg name='enable_v2v' default='true'/>
+  <arg name='enable_detection' default='true'/>
+  <arg name='detection_model' default='$(find era_gazebo)/models/faster_rcnn_resnet101_kitti_2018_01_28/frozen_inference_graph.pb'/>
  
   <!-- CARLA connection -->
   <arg name='host' default='localhost'/>
@@ -74,6 +75,8 @@
   <group if="$(arg enable_detection)">
     <include file="$(find era_gazebo)/launch/object_detection.launch">
       <arg name="image_topic" value="/carla/$(arg role_name_1)/camera/rgb/front/image_color"/>
+      <arg name="detection_model" value="$(arg detection_model)" />
+      <arg name="use_gpu" value="true" />
     </include>
   </group>
 
@@ -116,6 +119,7 @@
   <group if="$(arg enable_detection)">
     <include file="$(find era_gazebo)/launch/object_detection.launch">
       <arg name="image_topic" value="/carla/$(arg role_name_2)/camera/rgb/front/image_color"/>
+      <arg name="detection_model" value="$(arg detection_model)" />
     </include>
   </group>
 

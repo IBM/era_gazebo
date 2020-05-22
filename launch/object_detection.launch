@@ -2,14 +2,16 @@
 <launch>
 
 	<arg name="image_topic" default="/camera/image_color"/>
+	<arg name="detection_model" default="$(find era_gazebo)/models/ssd_mobilenet_v2_coco_2018_03_29/frozen_inference_graph.pb"/>
+	<arg name="use_gpu" default="false" />
 	
 	<node  name="detection_tensorflow" pkg="era_gazebo" type="detection_tensorflow.py" output="screen">
 	
-		<param name="use_gpu" value="true" />
+		<param name="use_gpu" value="$(arg use_gpu)" />
 		<param name="use_timers" value="false"/>
-		<param name="detection_treshold" value="0.8"/>
+		<param name="detection_treshold" value="0.5"/>
 
-		<param name="model" type="string" value="$(find era_gazebo)/models/ssd_mobilenet_v2_coco_2018_03_29/frozen_inference_graph.pb" />
+		<param name="model" type="string" value="$(arg detection_model)" />
 		
 		<param name="model_zoo_path" type="string" value="$(optenv HOME)/local/ext/tensorflow/models"/>
 		

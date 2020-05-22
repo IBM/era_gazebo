@@ -60,8 +60,11 @@ class ObjectDetectionTF():
 			self.device = '/CPU:0'
 			os.environ["CUDA_VISIBLE_DEVICES"] = "-1" 
 
+		if "kitti" in model_path:
+			PATH_TO_LABELS = os.path.join(model_zoo_path, 'research/object_detection/data', 'kitti_label_map.pbtxt')
+		else:
+			PATH_TO_LABELS = os.path.join(model_zoo_path, 'research/object_detection/data', 'mscoco_label_map.pbtxt')
 
-		PATH_TO_LABELS = os.path.join(model_zoo_path, 'research/object_detection/data', 'mscoco_label_map.pbtxt')
 		PATH_TO_CKPT = model_path
 		
 		with tf.device(self.device):
