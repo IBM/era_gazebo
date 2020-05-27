@@ -2,7 +2,7 @@
 <launch>
 
   <arg name='enable_v2v' default='true'/>
-  <arg name='enable_detection' default='true'/>
+  <arg name='enable_detection' default='false'/>
   <arg name='detection_model' default='$(find era_gazebo)/models/faster_rcnn_resnet101_kitti_2018_01_28/frozen_inference_graph.pb'/>
  
   <!-- CARLA connection -->
@@ -12,13 +12,15 @@
 
   <!-- Ego vehicle -->
   <arg name='role_name_1' default='hero1'/>
+  <arg name="spawn_point_1" default="-45, 60, 0, 0, 0, 90"/><!-- use comma separated format "x,y,z,roll,pitch,yaw" -->
+  <arg name="vehicle_model_1" default='vehicle.toyota.prius'/>
+
   <arg name='role_name_2' default='hero2'/>
- 
+  <arg name="spawn_point_2" default="-66.3, 28.0, 0, 0, 0, 0"/><!-- use comma separated format "x,y,z,roll,pitch,yaw" -->
+  <arg name="vehicle_model_2" default='vehicle.tesla.model3'/>
+
+
   <arg name='map_frame' default='/map'/>
-
-
-  <arg name="vehicle_filter" default='vehicle.toyota.prius'/>
-  <arg name="spawn_point" default=""/><!-- use comma separated format "x,y,z,roll,pitch,yaw" -->
 
   <!-- Map to load on startup (either a predefined CARLA town (e.g. 'Town01'), or a OpenDRIVE map file) -->
   <arg name="town" default='Town10HD'/>
@@ -46,9 +48,9 @@
     <arg name='host' value='$(arg host)'/>
     <arg name='port' value='$(arg port)'/>
     <arg name='timeout' value='$(arg timeout)'/>
-    <arg name="vehicle_filter" value='$(arg vehicle_filter)'/>
+    <arg name="vehicle_filter" value='$(arg vehicle_model_1)'/>
     <arg name='role_name' value='$(arg role_name_1)'/>
-    <arg name="spawn_point" value="$(arg spawn_point)"/>
+    <arg name="spawn_point" value="$(arg spawn_point_1)"/>
   </include>
 
    <include file="$(find carla_manual_control)/launch/carla_manual_control.launch">
@@ -90,9 +92,9 @@
     <arg name='host' value='$(arg host)'/>
     <arg name='port' value='$(arg port)'/>
     <arg name='timeout' value='$(arg timeout)'/>
-    <arg name="vehicle_filter" value='$(arg vehicle_filter)'/>
+    <arg name="vehicle_filter" value='$(arg vehicle_model_2)'/>
     <arg name='role_name' value='$(arg role_name_2)'/>
-    <arg name="spawn_point" value="$(arg spawn_point)"/>
+    <arg name="spawn_point" value="$(arg spawn_point_2)"/>
   </include>
 
    <include file="$(find carla_manual_control)/launch/carla_manual_control.launch">

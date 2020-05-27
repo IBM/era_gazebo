@@ -28,6 +28,13 @@ typedef boost::shared_ptr<nav_msgs::OccupancyGrid> GridPtr;
 
 ros::Publisher pub;
 
+
+double distance (geometry_msgs::Pose pose1, geometry_msgs::Pose pose2)
+{
+	return sqrt(pow(pose1.position.x-pose2.position.x,2) + pow(pose1.position.y-pose2.position.y,2) + pow(pose1.position.z-pose2.position.z,2));
+}
+
+
 void callback(const nav_msgs::OccupancyGrid::ConstPtr& local_msg, 
 			  const era_gazebo::ERAMsg::ConstPtr& remote_msg)
 {
@@ -37,15 +44,18 @@ void callback(const nav_msgs::OccupancyGrid::ConstPtr& local_msg,
 	if(local_msg->info.width >0 && local_msg->info.height >0 &&
 	   remote_msg->grid.info.width >0 && remote_msg->grid.info.height >0 ) {
 	
-	std::vector<nav_msgs::OccupancyGrid> grids;
-	grids.push_back(*local_msg);
+		if (distance(local_msg->info.origin, remote_msg->grid.info.origin) > 100.0) 
+			return;
 
-	grids.push_back(remote_msg->grid);
+		std::vector<nav_msgs::OccupancyGrid> grids;
+		grids.push_back(*local_msg);
+
+		grids.push_back(remote_msg->grid);
 
 
-	GridPtr combined = occupancy_grid_utils::combineGrids(grids);
+		GridPtr combined = occupancy_grid_utils::combineGrids(grids);
 
-	pub.publish(*combined);
+		pub.publish(*combined);
 	}
 }
 
