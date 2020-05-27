@@ -27,11 +27,13 @@
 typedef boost::shared_ptr<nav_msgs::OccupancyGrid> GridPtr;
 
 ros::Publisher pub;
-
+double max_distance = 100.0;
 
 double distance (geometry_msgs::Pose pose1, geometry_msgs::Pose pose2)
 {
-	return sqrt(pow(pose1.position.x-pose2.position.x,2) + pow(pose1.position.y-pose2.position.y,2) + pow(pose1.position.z-pose2.position.z,2));
+	return sqrt(pow(pose1.position.x-pose2.position.x,2) + 
+							pow(pose1.position.y-pose2.position.y,2) + 
+							pow(pose1.position.z-pose2.position.z,2));
 }
 
 
@@ -44,7 +46,7 @@ void callback(const nav_msgs::OccupancyGrid::ConstPtr& local_msg,
 	if(local_msg->info.width >0 && local_msg->info.height >0 &&
 	   remote_msg->grid.info.width >0 && remote_msg->grid.info.height >0 ) {
 	
-		if (distance(local_msg->info.origin, remote_msg->grid.info.origin) > 100.0) 
+		if (distance(local_msg->info.origin, remote_msg->grid.info.origin) > max_distance) 
 			return;
 
 		std::vector<nav_msgs::OccupancyGrid> grids;
@@ -74,6 +76,8 @@ int main(int argc, char **argv)
   sync.registerCallback(boost::bind(&callback, _1, _2));
   
   pub = n.advertise<nav_msgs::OccupancyGrid>("combined_grid", 10);
+
+  ros::param::param<double>("max_distance", max_distance, 100.0);
 
   ros::spin();
 
