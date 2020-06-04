@@ -20,20 +20,15 @@
   <param name="use_gazebo" value="$(arg use_gazebo)"/>
 </node>
 
-<arg name="local_ip" default="9.2.194.176" />
-<arg name="remote_ip" default="9.31.103.68" />
-<arg name="local_port" default="52001" />
-<arg name="remote_port" default="52002" />
-<arg name="namespace" default="$(arg robot_name)" />
+<arg name="multicast_ip" default="9.2.194.176" />
+<arg name="multicast_port" default="52001" />
 
 <node pkg="dsrc" name="wifi_transceiver"
     launch-prefix=""
     type="wifi_transceiver.py"
-    args="--local-ip $(arg local_ip)
-          --remote-ip $(arg remote_ip)
-          --ros-namespace $(arg namespace)
-          --local-port $(arg local_port)
-          --remote-port $(arg remote_port)
+    args="--multicast-ip $(arg multicast_ip)
+          --robot-name $(arg robot_name)
+          --multicast-port $(arg multicast_port)
           --encoding 0
           --freq 5890000000
           --samp-rate 10e6
