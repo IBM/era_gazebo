@@ -1,0 +1,15 @@
+global_frame: map
+robot_base_frame: hero3
+update_frequency: 5.0
+publish_frequency: 5.0
+rolling_window: true
+always_send_full_costmap: true
+static_map: false
+width: 100.0
+height: 100.0
+resolution: 2.0
+plugins:
+  - {name: obstacles, type: "costmap_2d::ObstacleLayer"}
+obstacles:
+  observation_sources: pointcloud
+  pointcloud: {data_type: PointCloud2, sensor_frame: hero3/lidar/lidar1, clearing: true, marking: true, obstacle_range: 100.0, raytrace_range: 101.0, min_obstacle_height: 0.05, topic: /carla/hero3/lidar/lidar1/point_cloud}

@@ -1,0 +1,170 @@
+<?xml version="1.0"?>
+<launch>
+
+  <arg name='enable_v2v' default='true'/>
+  <arg name='enable_detection' default='false'/>
+  <arg name='detection_model' default='$(find era_gazebo)/models/faster_rcnn_resnet101_kitti_2018_01_28/frozen_inference_graph.pb'/>
+ 
+  <!-- CARLA connection -->
+  <arg name='host' default='localhost'/>
+  <arg name='port' default='2000'/>
+  <arg name='timeout' default='5'/>
+
+  <!-- Ego vehicle -->
+  <arg name='role_name_1' default='hero1'/>
+  <arg name="spawn_point_1" default="-45, 60, 0, 0, 0, 90"/><!-- use comma separated format "x,y,z,roll,pitch,yaw" -->
+  <arg name="vehicle_model_1" default='vehicle.toyota.prius'/>
+
+  <arg name='role_name_2' default='hero2'/>
+  <arg name="spawn_point_2" default="-66.3, 28.0, 0, 0, 0, 0"/><!-- use comma separated format "x,y,z,roll,pitch,yaw" -->
+  <arg name="vehicle_model_2" default='vehicle.tesla.model3'/>
+
+  <arg name='role_name_3' default='hero3'/>
+  <arg name="spawn_point_3" default="-126.3, 28.0, 0, 0, 0, 0"/><!-- use comma separated format "x,y,z,roll,pitch,yaw" -->
+  <arg name="vehicle_model_3" default='vehicle.tesla.model3'/>
+
+
+  <arg name='map_frame' default='/map'/>
+
+  <!-- Map to load on startup (either a predefined CARLA town (e.g. 'Town01'), or a OpenDRIVE map file) -->
+  <arg name="town" default='Town10HD'/>
+
+  <!-- Synchronous mode-->
+  <arg name='synchronous_mode' default=''/>
+  <arg name='synchronous_mode_wait_for_vehicle_control_command' default=''/>
+  <arg name='fixed_delta_seconds' default=''/>
+
+
+  <include file="$(find carla_ros_bridge)/launch/carla_ros_bridge.launch">
+    <arg name='host' value='$(arg host)'/>
+    <arg name='port' value='$(arg port)'/>
+    <arg name='town' value='$(arg town)'/>
+    <arg name='timeout' value='$(arg timeout)'/>
+    <arg name='synchronous_mode' value='$(arg synchronous_mode)'/>
+    <arg name='synchronous_mode_wait_for_vehicle_control_command' value='$(arg synchronous_mode_wait_for_vehicle_control_command)'/>
+    <arg name='fixed_delta_seconds' value='$(arg fixed_delta_seconds)'/>
+  </include>
+
+<!-- VEHICLE 1 -->
+<group ns="$(arg role_name_1)">
+
+  <include file="$(find carla_ego_vehicle)/launch/carla_example_ego_vehicle.launch">
+    <arg name='host' value='$(arg host)'/>
+    <arg name='port' value='$(arg port)'/>
+    <arg name='timeout' value='$(arg timeout)'/>
+    <arg name="vehicle_filter" value='$(arg vehicle_model_1)'/>
+    <arg name='role_name' value='$(arg role_name_1)'/>
+    <arg name="spawn_point" value="$(arg spawn_point_1)"/>
+  </include>
+
+   <include file="$(find carla_manual_control)/launch/carla_manual_control.launch">
+    <arg name='role_name' value='$(arg role_name_1)'/>
+  </include>
+
+  <node name="costmap_node_$(arg role_name_1)" pkg="costmap_2d" type="costmap_2d_node" >
+    <rosparam file="$(find era_gazebo)/config/$(arg role_name_1)_costmap_2d.yaml" command="load" ns="costmap" />
+    <remap from="costmap_node_$(arg role_name_1)/costmap/costmap" to="local_map"/>
+  </node>
+
+  <group if="$(arg enable_v2v)">
+    <include file="$(find era_gazebo)/launch/v2v.launch">
+      <arg name="robot_name" value="$(arg role_name_1)" />
+      <arg name="multicast_ip" value="226.1.1.1" />
+      <arg name="multicast_port" value="52002" />
+      <arg name="robot_base_frame" value="$(arg role_name_1)" />
+      <arg name="map_frame" value="$(arg map_frame)" />
+    </include>
+  </group>
+
+  <group if="$(arg enable_detection)">
+    <include file="$(find era_gazebo)/launch/object_detection.launch">
+      <arg name="image_topic" value="/carla/$(arg role_name_1)/camera/rgb/front/image_color"/>
+      <arg name="detection_model" value="$(arg detection_model)" />
+      <arg name="use_gpu" value="true" />
+    </include>
+  </group>
+
+</group>
+ 
+<!-- VEHICLE 2 -->
+
+<group ns="$(arg role_name_2)">
+
+  <include file="$(find carla_ego_vehicle)/launch/carla_example_ego_vehicle.launch">
+    <arg name='host' value='$(arg host)'/>
+    <arg name='port' value='$(arg port)'/>
+    <arg name='timeout' value='$(arg timeout)'/>
+    <arg name="vehicle_filter" value='$(arg vehicle_model_2)'/>
+    <arg name='role_name' value='$(arg role_name_2)'/>
+    <arg name="spawn_point" value="$(arg spawn_point_2)"/>
+  </include>
+
+   <include file="$(find carla_manual_control)/launch/carla_manual_control.launch">
+    <arg name='role_name' value='$(arg role_name_2)'/>
+  </include>
+
+  <node name="costmap_node_$(arg role_name_2)" pkg="costmap_2d" type="costmap_2d_node" >
+    <rosparam file="$(find era_gazebo)/config/$(arg role_name_2)_costmap_2d.yaml" command="load" ns="costmap" />
+    <remap from="costmap_node_$(arg role_name_2)/costmap/costmap" to="local_map"/>
+  </node>
+
+  <group if="$(arg enable_v2v)">
+    <include file="$(find era_gazebo)/launch/v2v.launch">
+      <arg name="robot_name" value="$(arg role_name_2)" />
+      <arg name="multicast_ip" value="226.1.1.1" />
+      <arg name="multicast_port" value="52002" />
+      <arg name="robot_base_frame" value="$(arg role_name_2)" />
+      <arg name="map_frame" value="$(arg map_frame)" />
+    </include>
+  </group>
+
+  <group if="$(arg enable_detection)">
+    <include file="$(find era_gazebo)/launch/object_detection.launch">
+      <arg name="image_topic" value="/carla/$(arg role_name_2)/camera/rgb/front/image_color"/>
+      <arg name="detection_model" value="$(arg detection_model)" />
+    </include>
+  </group>
+</group> 
+
+<!-- VEHICLE 3 -->
+
+<group ns="$(arg role_name_3)">
+
+  <include file="$(find carla_ego_vehicle)/launch/carla_example_ego_vehicle.launch">
+    <arg name='host' value='$(arg host)'/>
+    <arg name='port' value='$(arg port)'/>
+    <arg name='timeout' value='$(arg timeout)'/>
+    <arg name="vehicle_filter" value='$(arg vehicle_model_3)'/>
+    <arg name='role_name' value='$(arg role_name_3)'/>
+    <arg name="spawn_point" value="$(arg spawn_point_3)"/>
+  </include>
+
+   <include file="$(find carla_manual_control)/launch/carla_manual_control.launch">
+    <arg name='role_name' value='$(arg role_name_3)'/>
+  </include>
+
+  <node name="costmap_node_$(arg role_name_3)" pkg="costmap_2d" type="costmap_2d_node" >
+    <rosparam file="$(find era_gazebo)/config/$(arg role_name_3)_costmap_2d.yaml" command="load" ns="costmap" />
+    <remap from="costmap_node_$(arg role_name_3)/costmap/costmap" to="local_map"/>
+  </node>
+
+  <group if="$(arg enable_v2v)">
+    <include file="$(find era_gazebo)/launch/v2v.launch">
+      <arg name="robot_name" value="$(arg role_name_3)" />
+      <arg name="multicast_ip" value="226.1.1.1" />
+      <arg name="multicast_port" value="52002" />>
+      <arg name="robot_base_frame" value="$(arg role_name_3)" />
+      <arg name="map_frame" value="$(arg map_frame)" />
+    </include>
+  </group>
+
+  <group if="$(arg enable_detection)">
+    <include file="$(find era_gazebo)/launch/object_detection.launch">
+      <arg name="image_topic" value="/carla/$(arg role_name_3)/camera/rgb/front/image_color"/>
+      <arg name="detection_model" value="$(arg detection_model)" />
+    </include>
+  </group>
+</group> 
+
+
+</launch>
