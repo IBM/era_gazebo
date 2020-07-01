@@ -75,7 +75,7 @@ int main(int argc, char **argv)
   message_filters::Synchronizer<MySyncPolicy> sync(MySyncPolicy(100), loc_map_sub, rem_map_sub);
   sync.registerCallback(boost::bind(&callback, _1, _2));
   
-  pub = n.advertise<nav_msgs::OccupancyGrid>("combined_grid", 10);
+  pub = n.advertise<nav_msgs::OccupancyGrid>("combined_map", 10);
 
   ros::param::param<double>("max_distance", max_distance, 100.0);
 

@@ -5,9 +5,9 @@ publish_frequency: 5.0
 rolling_window: true
 always_send_full_costmap: true
 static_map: false
-width: 100.0
-height: 100.0
-resolution: 2.0
+width: 50.0
+height: 50.0
+resolution: 1.0
 plugins:
   - {name: obstacles, type: "costmap_2d::ObstacleLayer"}
 obstacles:

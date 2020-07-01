@@ -57,6 +57,11 @@
     <arg name='role_name' value='$(arg role_name_1)'/>
   </include>
 
+  <include file="$(find carla_ackermann_control)/launch/carla_ackermann_control.launch">
+    <arg name='role_name' value='$(arg role_name_1)'/>
+  </include>
+
+
   <node name="costmap_node_$(arg role_name_1)" pkg="costmap_2d" type="costmap_2d_node" >
     <rosparam file="$(find era_gazebo)/config/$(arg role_name_1)_costmap_2d.yaml" command="load" ns="costmap" />
     <remap from="costmap_node_$(arg role_name_1)/costmap/costmap" to="local_map"/>
@@ -100,6 +105,11 @@
    <include file="$(find carla_manual_control)/launch/carla_manual_control.launch">
     <arg name='role_name' value='$(arg role_name_2)'/>
   </include>
+
+  <include file="$(find carla_ackermann_control)/launch/carla_ackermann_control.launch">
+    <arg name='role_name' value='$(arg role_name_1)'/>
+  </include>
+
 
   <node name="costmap_node_$(arg role_name_2)" pkg="costmap_2d" type="costmap_2d_node" >
     <rosparam file="$(find era_gazebo)/config/$(arg role_name_2)_costmap_2d.yaml" command="load" ns="costmap" />
