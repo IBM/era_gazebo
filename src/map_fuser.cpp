@@ -41,13 +41,15 @@ void callback(const nav_msgs::OccupancyGrid::ConstPtr& local_msg,
 			  const era_gazebo::ERAMsg::ConstPtr& remote_msg)
 {
   
-	ROS_INFO("maps received");
+	ROS_DEBUG("maps received");
 
 	if(local_msg->info.width >0 && local_msg->info.height >0 &&
 	   remote_msg->grid.info.width >0 && remote_msg->grid.info.height >0 ) {
 	
-		if (distance(local_msg->info.origin, remote_msg->grid.info.origin) > max_distance) 
+		if (distance(local_msg->info.origin, remote_msg->grid.info.origin) > max_distance) {
+			ROS_DEBUG("Not fusing map that is too far");
 			return;
+		} 
 
 		std::vector<nav_msgs::OccupancyGrid> grids;
 		grids.push_back(*local_msg);
