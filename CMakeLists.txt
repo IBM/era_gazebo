@@ -97,3 +97,9 @@ target_link_libraries(fake_laser
   ${OpenCV_LIBRARIES} 
 )
 
+add_Executable(occgrid_node src/occgrid_node.cpp)
+add_dependencies(occgrid_node era_gazebo_generate_messages_cpp)
+target_link_libraries(occgrid_node
+  ${catkin_LIBRARIES}
+  ${OpenCV_LIBRARIES} 
+)
