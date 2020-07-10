@@ -1,193 +1,203 @@
-#include "occgrid.h"
-#include <stdio.h>
-#include <stdlib.h>
+#include "transform_functions"
 
-/*
- * Changes:
- *  (1) deleted and replaced instances of push_back with helper function push_back_MapLocation
- *  (2) replaced instances of std::vector with struct Vector
- *  (3) replaced instances of geometry_msgs::Point with struct Point
- *  (4) commented all instances of multithreading and ROS_ERROR/DEBUG
- *  (5) replaced instance(s) of 'voxel_grid::VoxelStatus' with 'enum VoxelStatus'
- *  (6) removed/commented instances of 'inline' from function definitions
+/**
  * 
- * To Dos:
- *  (1) Replace all instances of "polygon[index]" with "polygon.data[index]"
- *  (2) Finish Costmap2D constructor/initializer
- *  (3) Remove/Modify template function definitions with pointer typecasting (or possibly token pasting)
- */
+ * Overview in costmap generation:
+ *      When the laserScan data is published to the 'occgrid' node, the function <laserScanCallback> is called. This function transforms
+ * laserScan data to a pointCloud and then buffers the pointCloud to the observation buffer. Once the pointCloud is transformed to 
+ * global frame and added to the queue, the map can be updated using updateMap(). This function calls updateBounds(), which resizes 
+ * the frame, updates the current status of the globabl frame, raytraces freespace, ... , and assigns LETHAL_OBSTACLE to the 
+ * specified 'cells'. Once the char array 'costap_' is updated, then updateCosts() (which calls updateWithOverwrite()) iterates through
+ * the specifed occupancy grid and assigns the corresponding cost value from costap_.
+ * 
+ */ 
 
-static void mapToWorld3D(const unsigned int mx, const unsigned int my, const unsigned int mz,
-                                      const double origin_x, const double origin_y, const double origin_z,
-                                      const double x_resolution, const double y_resolution, const double z_resolution,
-                                      double& wx, double& wy, double& wz)
-{
-    //returns the center point of the cell
-    wx = origin_x + (mx + 0.5) * x_resolution;
-    wy = origin_y + (my + 0.5) * y_resolution;
-    wz = origin_z + (mz + 0.5) * z_resolution;
+void occgrid(const sensor_msg::LaserScanConstPtr& message, const boost::shared_ptr<ObservationBuffer>& buffer) {
+    sensor_msgs::PointCloud2 cloud; //Construct a similar struct
+    cloud.header = message->header;
+
+    try {
+        projector_.transformLaserScanToPointClod(message->header.frame_if, *message, cloud, *tf_);
+    }
+    catch (tfs::TransformException &ex) {
+        printf("High fidelity enabled, but TF returned a transform exception to frame %s: %s", global_frame_.c_str(), ex.what());
+        projector_.projectLaser(*message, cloud); //projector_ comes from laser_geometry::LaserPorjection
+    }
+
+    buffer->bufferCloud(cloud);
 }
 
-float g_colors_r[] = {0.0f, 0.0f, 1.0f};
-float g_colors_g[] = {0.0f, 0.0f, 0.0f};
-float g_colors_b[] = {0.0f, 1.0f, 0.0f};
-float g_colors_a[] = {0.0f, 0.5f, 1.0f};
+void bufferCloud(const sensor_msgs::PointCloud1& cloud) {
+    geometry_msgs::PointStamped global origin;
 
-/*
-//Initializes Costmap2D and returns its pointer
-Costmap2D& Costmap2DInit(unsigned int cells_size_x, unsigned int cells_size_y, double resolution, double origin_x,
-          double origin_y, unsigned char default_value) {
-    //Initialize map
-    size_x_ = cells_size_x;
-    size_y_ = cells_size_y;
-    resolution_ = resolution;
-    origin_x_ = origin_x;
-    origin_y_ = origin_y;
-    costmap_ = NULL;
-    default_value_ = default_value;
+    //create a new observation on the list to be populated
+    observation_list_.push_front(Observation()); //TODO: implement helper function for push_front
 
-    //access_ = new mutex_t(); //For multithreading
+    //check whether the origin frame has been set explicitly or whether we should get it from the cloud
+    string origin_frame = sensor_frame_ == "" ? cloud.header.frame_id : sensor_frame_;
 
-    //create the costmap
-    initMaps(size_x_, size_y_);
-    resetMaps();
+    try {
+        //given these observations come from sensor... we'll need to store the origin point of the sensor
+        geometry_msgs::PointStamped local_origin;
+        local_origin.header.stamp = cloud.header.stamp;
+        local_origin.header.frame_id = origin_frame;
+        local_origin.point.x = 0;
+        local_origin.point.y = 0;
+        local_origin.point.z = 0;
+        tf2_buffer_.transform(local_origin, global_origin, global_frame_);
+        tf2::convert(global_origin.point, obseration_list_.front().origin_); //TODO: implement in transform_functions.c the function convert()
 
-    return 
+    // make sure to pass on the raytrace/obstacle range of the observation buffer to the observations
+    observation_list_.front().raytrace_range_ = raytrace_range_;
+    observation_list_.front().obstacle_range_ = obstacle_range_;
+
+    sensor_msgs::PointCloud2 global_frame_cloud;
+
+    // transform the point cloud
+    tf2_buffer_.transform(cloud, global_frame_cloud, global_frame_);
+    global_frame_cloud.header.stamp = cloud.header.stamp;
+
+    // now we need to remove observations from the cloud that are below or above our height thresholds
+    sensor_msgs::PointCloud2& observation_cloud = *(observation_list_.front().cloud_); //TODO: implement helper function for front()
+    observation_cloud.height = global_frame_cloud.height;
+    observation_cloud.width = global_frame_cloud.width;
+    observation_cloud.fields = global_frame_cloud.fields;
+    observation_cloud.is_bigendian = global_frame_cloud.is_bigendian;
+    observation_cloud.point_step = global_frame_cloud.point_step;
+    observation_cloud.row_step = global_frame_cloud.row_step;
+    observation_cloud.is_dense = global_frame_cloud.is_dense;
+
+    unsigned int cloud_size = global_frame_cloud.height*global_frame_cloud.width;
+    sensor_msgs::PointCloud2Modifier modifier(observation_cloud); //TODO: implement helper function for modifier
+    modifier.resize(cloud_size); //TODO: implement helper function for resize()
+    unsigned int point_count = 0;
+
+    // copy over the points that are within our height bounds
+    sensor_msgs::PointCloud2Iterator<float> iter_z(global_frame_cloud, "z"); //TODO: implement helper function for iter_z
+    std::vector<unsigned char>::const_iterator iter_global = global_frame_cloud.data.begin(), iter_global_end = global_frame_cloud.data.end();
+    std::vector<unsigned char>::iterator iter_obs = observation_cloud.data.begin();
+    for (; iter_global != iter_global_end; ++iter_z, iter_global += global_frame_cloud.point_step) {
+      if ((*iter_z) <= max_obstacle_height_ && (*iter_z) >= min_obstacle_height_) {
+        std::copy(iter_global, iter_global + global_frame_cloud.point_step, iter_obs); //TODO: implement HF for copy if not defined by standard C library
+        iter_obs += global_frame_cloud.point_step;
+        ++point_count;
+      }
+    }
+
+    // resize the cloud for the number of legal points
+    modifier.resize(point_count);
+    observation_cloud.header.stamp = cloud.header.stamp;
+    observation_cloud.header.frame_id = global_frame_cloud.header.frame_id;
+  }
+
+  catch (TransformException& ex) {
+    // if an exception occurs, we need to remove the empty observation from the list
+    observation_list_.pop_front(); //TOD0: implement helper function
+    ROS_ERROR("TF Exception that should never happen for sensor frame: %s, cloud frame: %s, %s", sensor_frame_.c_str(),
+              cloud.header.frame_id.c_str(), ex.what()); //TODO: check imported functions called here
+    return;
+  }
+
+  // if the update was successful, we want to update the last updated time
+  last_updated_ = ros::Time::now(); //TODO: Use C library for time-updating
+
+  // we'll also remove any stale observations from the list
+  purgeStaleObservations(); 
 }
-*/
 
-void deleteMaps() {
-    //clean up data
-    //boost::unique_lock<mutex_t> lock(*access_); //For multithreading
-    free(costmap_);
-    costmap_ = (unsigned char *) malloc(size_x * size_y * sizeof(unsigned char))); // CHECK: IMPLENTATION
-}
+void purgeStaleObservations() {
+    if (!observartion_list_empty()) {
+        list<Observation>::iterator obs_it = observation_list_.begin();
+        //if we're keeping observation for no time... then we'll only keep one observation
+        if (observation_keep_time_ == ros::Duration(0.0)) {
+            observation_list_.erase(++obs_it, observation_list.end());
+            return;
+        }
+        // otherwise... we'll have to loop through the observations to see which ones are stale
 
-void resizeMap(unsigned int size_x, unsigned int size_y, double resolution,
-               double origin_x, double origin_y) {
-    size_x_ = size_x;
-    size_y_ = cells_size_y;
-    resolution_ = resolution;
-    origin_x_ = origin_x;
-    origin_y_ = origin_y;
-
-    initMaps(size_x, size_y);
-
-    //reset our maps to have no information
-    resetMaps();                  
-}
-
-void resetMaps() {
-    //boost::unique_lock<mutex_t> lock(*access_); //For multithreading
-    memset(costmap_, defualt_value_, size_x_ * size_y_ * sizeof(unsigned char));
-}
-
-void resetMap(unsigned int x0, unsigned int y0, unsigned int xn, unsigned nt yn) {
-    unsigned int len = xn - x0;
-    for (unsigned int y = y0 * size_x_ + x0; y < yn * size_x_ + x0; y += size_x_) {
-        memset(costmap_ + y, default_value_, len * sizeof(unsigned char));    
+        for (obs_it = observation_list_.begin(); obs_it != observation_list_.end(); ++obs_it){
+            Observation& obs = *obs_it;
+            // check if the observation is out of date... and if it is, remove it and those that follow from the list
+            if ((last_updated_ - obs.cloud_->header.stamp) > observation_keep_time_) {
+                observation_list_.erase(obs_it, observation_list_.end());
+                return;
+            }
+        }
     }
 }
 
-bool copyCostmapWindow(const Costmap2D& map, double win_origin_x, double win_origin_y,
-                       double sin_size_x, double win_size_y) {
-    //check for self windowing
-    if (this == &map) {
-        //ROS_ERROR("Cannot convert this costap into a window of itself");
-        printf("Cannot convert this costmap into a window of itself\n");
-        return false;
+void updateMap(double robot_x, double robot_y, double robot_yaw) {
+    //Lock for the remainder of this function, some plugins (e.g. VoxelLayer) implement threade unsafe updateBounds() functions.
+    boost::unique_lock<Costmap2D::mutex_t> lock(*(costmap_.getMutex()));
+
+    // if we're using a rolling buffer costmap... we need to update the origin using the robot's position
+    if (rolling_window_)
+    {
+        double new_origin_x = robot_x - costmap_.getSizeInMetersX() / 2; //TODO: implement getSizeInMetersX() helper function
+        double new_origin_y = robot_y - costmap_.getSizeInMetersY() / 2;
+        costmap_.updateOrigin(new_origin_x, new_origin_y);
     }
 
-    //clean up old data
-    deleteMaps();
+    if (plugins_.size() == 0) 
+        return;
 
-    //compute the bounds of our new map
-    unsigned int lower_left_x, lower_left_y, upper_right_x, upper_right_y;
-    if (!map.worldToMap(win_origin_x, win_origin_y, lower_left_x, lower_left_y)
-        || !map.worldToMap(win_origin_x + win_size_x, win_origin_y + win_size_y, upper_right_x, upper_right_y)) {
-        //ROS_ERROR("Cannot window a map that the window bounds dont fit inside of")
-        printf("Cannot window a map that the window bounds dont fit inside of\n")
-        return false;
+    minx_ = miny_ = 1e30;
+    maxx_ = maxy_ = -1e30;
+
+    for (vector<boost::shared_ptr<Layer> >::iterator plugin = plugins_.begin(); plugin != plugins_.end(); ++plugin)
+    {
+        double prev_minx = minx_;
+        double prev_miny = miny_;
+        double prev_maxx = maxx_;
+        double prev_maxy = maxy_;
+        (*plugin)->updateBounds(robot_x, robot_y, robot_yaw, &minx_, &miny_, &maxx_, &maxy_);
+        if (minx_ > prev_minx || miny_ > prev_miny || maxx_ < prev_maxx || maxy_ < prev_maxy)
+        {
+            ROS_WARN_THROTTLE(1.0, "Illegal bounds change, was [tl: (%f, %f), br: (%f, %f)], but "
+                        "is now [tl: (%f, %f), br: (%f, %f)]. The offending layer is %s",
+                        prev_minx, prev_miny, prev_maxx , prev_maxy,
+                        minx_, miny_, maxx_ , maxy_,
+                        (*plugin)->getName().c_str());
+        }
     }
 
-    size_x_ = upper_right_x - lower_left_x;
-    size_y_ = upper_right_y - lower_left_y;
-    resolution_ = map.resolution_;
-    origin_x_ = win_origin_x;
-    origin_y_ = win_origin_y;
+    int x0, xn, y0, yn;
+    costmap_.worldToMapEnforceBounds(minx_, miny_, x0, y0);
+    costmap_.worldToMapEnforceBounds(maxx_, maxy_, xn, yn);
 
-    // initialize our various maps and reset markers for inflation
-    initMaps(size_x_, size_y_);
+    x0 = std::max(0, x0);
+    xn = std::min(int(costmap_.getSizeInCellsX()), xn + 1);
+    y0 = std::max(0, y0);
+    yn = std::min(int(costmap_.getSizeInCellsY()), yn + 1);
 
-    // copy the window of the static map and the costmap that we're taking
-    copyMapRegion(map.costmap_, lower_left_x, lower_left_y, map.size_x_, costmap_, 0, 0, size_x_, size_x_, size_y_);
-    return true;
-}
+    ROS_DEBUG("Updating area x: [%d, %d] y: [%d, %d]", x0, xn, y0, yn);
 
-unsigned int cellDistance(double world_dist) {
-    double cells_dist = max(0.0, ceil(world_dist / resolution_));
-    return (unsigned int) cells_dist;
-}
+    if (xn < x0 || yn < y0)
+        return;
 
-unsigned char* getCharMap() {
-    return costmap_;
-}
-
-unsigned char getCost(unsgined int mx, unsigned int my) {
-    return costmap_[getIndex(mx, my)];
-}
-
-void setCost(unsigned int mx, unsigned int my, unsigned char cost) {
-    costmap_[getIndex(mx, my)] = cost;
-}
-
-void mapToWorld(unsigned int x, unsigned int my, double& wx, double& wy) {
-    wx = origin_x_ + (mx + 0.5) * resolution_;
-    wy = origin_y_ + (my + 0.5) * resolution_;
-}
-
-bool worldToMap(double wx, double wy, unsigned int& mx, unsigned int& my) {
-    if (wx < origin_x_ || wy < origin_y_) return false;
-
-    mx = (int)((wx - origin_x_) / resolution_);
-    my = (int)((wy - origin_y_) / resolution_);
-
-    if (mx < size_x_ && my < size_y_) return true;
-
-    return false;
-}
-
-void worldToMapNoBounds(double wx, double wy, int& mx, int& my) {
-    mx = (int)((wx - origin_x_) / resolution_);
-    my = (int)((wy - origin_y_) / resolution_);
-}
-
-void worldToMapEnforceBounds(double wx, double wy, int& mx, int& my) {
-    if (wx < origin_x_) mx = 0;
-    else if (wx >= resolution_ * size_x_ + origin_x_) {
-        mx = size_x_ - 1;
-    }
-    else {
-        mx = (int)((wx - origin_x_) / resolution_);
+    costmap_.resetMap(x0, y0, xn, yn);
+    for (vector<boost::shared_ptr<Layer> >::iterator plugin = plugins_.begin(); plugin != plugins_.end(); ++plugin)
+    {
+        (*plugin)->updateCosts(costmap_, x0, y0, xn, yn);
     }
 
-    if (wy < origin_y_) my = 0;
-    else if (wy >= resolution_ * size_y_ + origin_y_) {
-        my = size_y_ - 1;
-    }
-    else {
-        my = (int)((wy - origin_y_) / resolution_);
-    }
+    bx0_ = x0;
+    bxn_ = xn;
+    by0_ = y0;
+    byn_ = yn;
+
+    initialized_ = true;
 }
 
-void updateOrigin(double new_origin_x, double new_origin_y) {
-    //project the new origin into the grid
+void uodateOrigin(double new_origin_x, double new_origin_y) {
+    // project the new origin into the grid
     int cell_ox, cell_oy;
     cell_ox = int((new_origin_x - origin_x_) / resolution_);
     cell_oy = int((new_origin_y - origin_y_) / resolution_);
 
     // Nothing to update
-    if (cell_ox == 0 && cell_oy == 0) return;
+    if (cell_ox == 0 && cell_oy == 0)
+        return;
 
     // compute the associated world coordinates for the origin cell
     // because we want to keep things grid-aligned
@@ -209,13 +219,13 @@ void updateOrigin(double new_origin_x, double new_origin_y) {
     unsigned int cell_size_x = upper_right_x - lower_left_x;
     unsigned int cell_size_y = upper_right_y - lower_left_y;
 
-    //we need a map to store the obstacles in the window temporarily
-    unsigned char* local_map = malloc(sizeof(unsigned char) * cell_size_x * cel_size_y);
+    // we need a map to store the obstacles in the window temporarily
+    unsigned char* local_map = new unsigned char[cell_size_x * cell_size_y];
 
-    //copy the local window in the costmap to the local map
+    // copy the local window in the costmap to the local map
     copyMapRegion(costmap_, lower_left_x, lower_left_y, size_x_, local_map, 0, 0, cell_size_x, cell_size_x, cell_size_y);
 
-    //now we'll see the costmap to be completely unknown if we track unknown space
+    // now we'll set the costmap to be completely unknown if we track unknown space
     resetMaps();
 
     // update the origin with the appropriate world coordinates
@@ -230,141 +240,431 @@ void updateOrigin(double new_origin_x, double new_origin_y) {
     copyMapRegion(local_map, 0, 0, cell_size_x, costmap_, start_x, start_y, size_x_, cell_size_x, cell_size_y);
 
     // make sure to clean up
-    free(local_map);
+    delete[] local_map;
+}
+
+template<typename data_type>//TODO: Configure to plain C
+void copyMapRegion(data_type* source_map, unsigned int sm_lower_left_x, unsigned int sm_lower_left_y,
+                       unsigned int sm_size_x, data_type* dest_map, unsigned int dm_lower_left_x,
+                       unsigned int dm_lower_left_y, unsigned int dm_size_x, unsigned int region_size_x,
+                       unsigned int region_size_y) {
+    // we'll first need to compute the starting points for each map
+    data_type* sm_index = source_map + (sm_lower_left_y * sm_size_x + sm_lower_left_x);
+    data_type* dm_index = dest_map + (dm_lower_left_y * dm_size_x + dm_lower_left_x);
+
+    // now, we'll copy the source map into the destination map
+    for (unsigned int i = 0; i < region_size_y; ++i){
+        memcpy(dm_index, sm_index, region_size_x * sizeof(data_type));
+        sm_index += sm_size_x;
+        dm_index += dm_size_x;
+    }
+}
+
+void resetMaps() {
+    memset(costmap_, default_value_, size_x_ * size_y_ * sizeof(unsigned char));
+}
+
+void updateBounds(double robot_x, double robot_y, double robot_yaw, double* min_x, double* min_y, double* max_x, double* max_y) {
+    if (rolling_window_)
+        updateOrigin(robot_x - getSizeInMetersX() / 2, robot_y - getSizeInMetersY() / 2);
+    if (!enabled_)
+        return;
+    useExtraBounds(min_x, min_y, max_x, max_y);
+
+    bool current = true;
+    std::vector<Observation> observations, clearing_observations;
+
+    // get the marking observations
+    current = current && getMarkingObservations(observations);
+
+    // get the clearing observations
+    current = current && getClearingObservations(clearing_observations);
+
+    // update the global current status
+    current_ = current;
+
+    // raytrace freespace
+    for (unsigned int i = 0; i < clearing_observations.size(); ++i)
+    {
+        raytraceFreespace(clearing_observations[i], min_x, min_y, max_x, max_y);
+    }
+
+    // place the new obstacles into a priority queue... each with a priority of zero to begin with
+    for (std::vector<Observation>::const_iterator it = observations.begin(); it != observations.end(); ++it)
+    {
+        const Observation& obs = *it;
+        const sensor_msgs::PointCloud2& cloud = *(obs.cloud_);
+        double sq_obstacle_range = obs.obstacle_range_ * obs.obstacle_range_;
+
+        sensor_msgs::PointCloud2ConstIterator<float> iter_x(cloud, "x");
+        sensor_msgs::PointCloud2ConstIterator<float> iter_y(cloud, "y");
+        sensor_msgs::PointCloud2ConstIterator<float> iter_z(cloud, "z");
+
+        for (; iter_x !=iter_x.end(); ++iter_x, ++iter_y, ++iter_z)
+        {
+        double px = *iter_x, py = *iter_y, pz = *iter_z;
+
+        // if the obstacle is too high or too far away from the robot we won't add it
+        if (pz > max_obstacle_height_)
+        {
+            ROS_DEBUG("The point is too high");
+            continue;
+        }
+
+        // compute the squared distance from the hitpoint to the pointcloud's origin
+        double sq_dist = (px - obs.origin_.x) * (px - obs.origin_.x) + (py - obs.origin_.y) * (py - obs.origin_.y) + (pz - obs.origin_.z) * (pz - obs.origin_.z);
+
+        // if the point is far enough away... we won't consider it
+        if (sq_dist >= sq_obstacle_range)
+        {
+            ROS_DEBUG("The point is too far away");
+            continue;
+        }
+
+        // now we need to compute the map coordinates for the observation
+        unsigned int mx, my;
+        if (!worldToMap(px, py, mx, my))
+        {
+            ROS_DEBUG("Computing map coords failed");
+            continue;
+        }
+
+        unsigned int index = getIndex(mx, my);
+        costmap_[index] = LETHAL_OBSTACLE;
+        touch(px, py, min_x, min_y, max_x, max_y);
+    }
+}
+
+void useExtraBounds(doulbe* min_x, double* min_y, double* max_x, double* max_y) {
+    if (!has_extra_bounds) return;
+
+    *min_x = std::min(extra_min_x_, *min_x);
+    *min_y = std::min(extra_min_y_, *min_y);
+    *max_x = std::max(extra_max_x_, *max_x);
+    *max_y = std::max(extra_max_y_, *max_y);
+    extra_min_x_ = 1e6;
+    extra_min_y_ = 1e6;
+    extra_max_x_ = -1e6;
+    extra_max_y_ = -1e6;
+    has_extra_bounds_ = false;
+}
+
+bool getMarkingObservations(std::vector<Observation>& marking_observations) {
+    bool current = true;
+    
+    // get the marking observations
+    for (unsigned int i = 0; i < marking_buffers_.size(); ++i) //TODO: remove lock/unlock calls
+    {
+        marking_buffers_[i]->lock();
+        marking_buffers_[i]->getObservations(marking_observations);
+        current = marking_buffers_[i]->isCurrent() && current;
+        marking_buffers_[i]->unlock();
+    }
+    marking_observations.insert(marking_observations.end(),
+                              static_marking_observations_.begin(), static_marking_observations_.end());
+    return current;
+}
+
+
+bool getClearingObservations(std::vector<Observation>& clearing_observations) {
+    bool current = true;
+
+    // get the clearing observations
+    for (unsigned int i = 0; i < clearing_buffers_.size(); ++i) //TODO: Remove lock/unlock calls
+    {
+        clearing_buffers_[i]->lock();
+        clearing_buffers_[i]->getObservations(clearing_observations);
+        current = clearing_buffers_[i]->isCurrent() && current;
+        clearing_buffers_[i]->unlock();
+    }
+    clearing_observations.insert(clearing_observations.end(),
+                              static_clearing_observations_.begin(), static_clearing_observations_.end());
+    return current;
+}
+
+void getObservations(vector<Observation>& observations) {
+    //first, let's make sure that we don't ave any stake observations
+    purgeStaleObservations();
+
+    //now we'll ust copy the observations for the caller
+    list<Observation>::iterator obs_it;
+    for (obs_it observation_list_.begin(); obs_it != observation_list_.end(); ++obs_it) {
+        bservations.push_back(*obs_it);
+    }
+}
+
+bool isCurrent() {
+    if (expected_update_rate_ == ros::Duration(0.0)) return true;
+
+    bool current = (ros::Time::now() - last_updated_).toSec() <= expected_update_rate_.toSec();
+    if (!current)
+    {
+        ROS_WARN(
+            "The %s observation buffer has not been updated for %.2f seconds, and it should be updated every %.2f seconds.",
+            topic_name_.c_str(), (ros::Time::now() - last_updated_).toSec(), expected_update_rate_.toSec());
+    }
+    return current;
+}
+
+void raytraceFreespace(const Obseration& clearing_observation, double* min_x, double* min_y, double* max_x, double* max_y) {
+    double ox = clearing_observation.origin_.x;
+    double oy = clearing_observation.origin_.y;
+    const sensor_msgs::PointCloud2 &cloud = *(clearing_observation.cloud_);
+
+    // get the map coordinates of the origin of the sensor
+    unsigned int x0, y0;
+    if (!worldToMap(ox, oy, x0, y0))
+    {
+        ROS_WARN_THROTTLE(
+            1.0, "The origin for the sensor at (%.2f, %.2f) is out of map bounds. So, the costmap cannot raytrace for it.",
+            ox, oy);
+        return;
+    }
+
+    // we can pre-compute the enpoints of the map outside of the inner loop... we'll need these later
+    double origin_x = origin_x_, origin_y = origin_y_;
+    double map_end_x = origin_x + size_x_ * resolution_;
+    double map_end_y = origin_y + size_y_ * resolution_;
+
+    touch(ox, oy, min_x, min_y, max_x, max_y);
+
+    // for each point in the cloud, we want to trace a line from the origin and clear obstacles along it
+    sensor_msgs::PointCloud2ConstIterator<float> iter_x(cloud, "x");
+    sensor_msgs::PointCloud2ConstIterator<float> iter_y(cloud, "y");
+
+    for (; iter_x != iter_x.end(); ++iter_x, ++iter_y)
+    {
+        double wx = *iter_x;
+        double wy = *iter_y;
+
+        // now we also need to make sure that the enpoint we're raytracing
+        // to isn't off the costmap and scale if necessary
+        double a = wx - ox;
+        double b = wy - oy;
+
+        // the minimum value to raytrace from is the origin
+        if (wx < origin_x)
+        {
+            double t = (origin_x - ox) / a;
+            wx = origin_x;
+            wy = oy + b * t;
+        }
+
+        if (wy < origin_y)
+        {
+            double t = (origin_y - oy) / b;
+            wx = ox + a * t;
+            wy = origin_y;
+        }
+
+        // the maximum value to raytrace to is the end of the map
+        if (wx > map_end_x)
+        {
+            double t = (map_end_x - ox) / a;
+            wx = map_end_x - .001;
+            wy = oy + b * t;
+        }
+        if (wy > map_end_y)
+        {
+            double t = (map_end_y - oy) / b;
+            wx = ox + a * t;
+            wy = map_end_y - .001;
+        }
+
+        // now that the vector is scaled correctly... we'll get the map coordinates of its endpoint
+        unsigned int x1, y1;
+
+        // check for legality just in case
+        if (!worldToMap(wx, wy, x1, y1))
+        continue;
+
+        unsigned int cell_raytrace_range = cellDistance(clearing_observation.raytrace_range_);
+        MarkCell marker(costmap_, FREE_SPACE); //TODO: investigate the 'marker casting
+
+        // and finally... we can execute our trace to clear obstacles along that line
+        raytraceLine(marker, x0, y0, x1, y1, cell_raytrace_range);
+
+        updateRaytraceBounds(ox, oy, wx, wy, clearing_observation.raytrace_range_, min_x, min_y, max_x, max_y);
+  }
+}
+
+bool worldToMap(double wx, double wy, unsigned int& mx, unsigned int& my) {
+    if (wx < origin_x_ || wy < origin_y_) return false;
+
+    mx = (int)((wx - origin_x_) / resolution_);
+    my = (int)((wy - origin_y_) / resolution_);
+
+    if (mx < size_x_ && my < size_y_) return true;
+
+    return false;
+}
+
+void touch(double x, double y, double* min_x, double* min_y, double* max_x, double* max_y) {
+    *min_x = std::min(x, *min_x);
+    *min_y = std::min(y, *min_y);
+    *max_x = std::max(x, *max_x);
+    *max_y = std::max(y, *max_y);
+}
+
+unsigned int cellDistance(double world_dist) {
+    double cells_dist = max (0.0, ceil(world_dist/resolution_)); //TODO: import standard math library for ceil()
+    return (unsigned int) cells_dist;
+}
+
+template<class ActionType> //TODO:
+void rayTtaceLine(ActionType at, unsigned int x0, unsgined int y0, unsigned int x1, unsigned int y1, unsigned int max_length = UNIT_MAX) { //TODO: Just in case, check if right function
+    int dx = x1 - x0;
+    int dy = y1 - y0;
+
+    unsigned int abs_dx = abs(dx);
+    unsigned int abs_dy = abs(dy);
+
+    int offset_dx = sign(dx);
+    int offset_dy = sign(dy) * size_x_;
+
+    unsigned int offset = y0 * size_x_ + x0;
+
+    // we need to chose how much to scale our dominant dimension, based on the maximum length of the line
+    double dist = hypot(dx, dy);
+    double scale = (dist == 0.0) ? 1.0 : std::min(1.0, max_length / dist);
+
+    // if x is dominan
+
+    if (abs_dx >= abs_dy)
+    {
+        int error_y = abs_dx / 2;
+        bresenham2D(at, abs_dx, abs_dy, error_y, offset_dx, offset_dy, offset, (unsigned int)(scale * abs_dx));
+        return;
+    }
+
+    // otherwise y is dominant
+    int error_x = abs_dy / 2;
+    bresenham2D(at, abs_dy, abs_dx, error_x, offset_dy, offset_dx, offset, (unsigned int)(scale * abs_dy));
+}
+
+template<class ActionType> //TODO:
+void bresenham2D(ActionType at, unsigned int abs_da, unsigned int abs_db, int error_b, int offset_a,
+                        int offset_b, unsigned int offset, unsigned int max_length) {
+    unsigned int end = std::min(max_length, abs_da);
+    for (unsigned int i = 0; i < end; ++i)
+    {
+        at(offset);
+        offset += offset_a;
+        error_b += abs_db;
+        if ((unsigned int)error_b >= abs_da)
+        {
+            offset += offset_b;
+            error_b -= abs_da;
+        }
+    }
+    at(offset);
+}
+
+void updateRaytraceBounds(double ox, double oy, double wx, double wy, double range,
+                          double* min_x, double* min_y, double* max_x, double* max_y) {
+    double dx = wx-ox, dy = wy-oy;
+    double full_distance = hypot(dx, dy);
+    double scale = std::min(1.0, range / full_distance);
+    double ex = ox + dx * scale, ey = oy + dy * scale;
+    touch(ex, ey, min_x, min_y, max_x, max_y);
+}
+
+void worldToMapEnforceBounds(double w, double wy, int& mx, int& my) {
+    // Here we avoid doing any math to wx,wy before comparing them to
+    // the bounds, so their values can go out to the max and min values
+    // of double floating point.
+    if (wx < origin_x_)
+    {
+        mx = 0;
+    }
+    else if (wx >= resolution_ * size_x_ + origin_x_)
+    {
+        mx = size_x_ - 1;
+    }
+    else
+    {
+        mx = (int)((wx - origin_x_) / resolution_);
+    }
+
+    if (wy < origin_y_)
+    {
+        my = 0;
+    }
+    else if (wy >= resolution_ * size_y_ + origin_y_)
+    {
+        my = size_y_ - 1;
+    }
+    else
+    {
+        my = (int)((wy - origin_y_) / resolution_);
+    }
 }
 
 unsigned int getSizeInCellsX() {
-  return size_x_;
+    return size_x_;
 }
 
 unsigned int getSizeInCellsY() {
-  return size_y_;
+    return size_y_;
 }
 
-double getSizeInMetersX() {
-  return (size_x_ - 1 + 0.5) * resolution_;
+void resetMap(unsigned int x0, unsigned int y0, unsigned int xn, unsigned int yn) {
+    unsigned int len = xn - x0;
+    for (unsigned int y = y0 * size_x_ + x0; y < yn * size_x_ + x0; y += size_x_) {
+        memset(costmap_ + y, default_value_, len * sizeof(unsigned char));
+    }
 }
 
-double getSizeInMetersY() {
-  return (size_y_ - 1 + 0.5) * resolution_;
-}
+void updateCosts() {
+    if (!enabled_) return;
 
-double getOriginX() {
-  return origin_x_;
-}
-
-double getOriginY() {
-  return origin_y_;
-}
-
-double getResolution() {
-  return resolution_;
-}
-
-bool saveMap(string file_name) {
-    FILE *fp = fopen(file_name.c_str(), "w");
-    if (!fp) {
-        return false;
+    if (footprint_clearing_enabled_) {
+        setConvexPolygonCost(transformed_footprint_, costmap_2d::FREE_SPACE);
     }
 
-    fprintf(fp, "P2\n%u\n%u\n%u\n", size_x_, size_y_, 0xff);
-    for (unsigned int iy = 0; iy < size_y_; iy++) {
-        for (unsigned int ix = 0; ix < size_x_; ix++) {
-            unsigned char cost = getCost(ix, iy);
-            fprintf(fp, "%d ", cost);
-        }
-        fprintf(fp, "\n");
+    switch (combination_method_) {
+        case 0:  // Overwrite
+            updateWithOverwrite(master_grid, min_i, min_j, max_i, max_j);
+            break;
+        case 1:  // Maximum
+            updateWithMax(master_grid, min_i, min_j, max_i, max_j);
+            break;
+        default:  // Nothing
+            break;
     }
-    fclose(fp);
-    return true;
 }
 
-Costmap2D& operator=(const Costmap2D& map) {
-    //check for self assignement
-    if (this == &map) return *this;
-
-    //clean up old data
-    deleteMaps();
-
-    size_x_ = map.size_x_;
-    size_y_ = map.size_y_;
-    resolution_ = map.resolution_;
-    origin_x_ = map.origin_x_;
-    origin_y_ = map.origin_y_;
-
-    //initialize our various maps
-    initMaps(size_x_, size_y_);
-
-    //copy the cost map
-    memcpy(costmap_, map.costmap_, size_x_ * size_y_ * sizeof(unsigned char));
-    //CHECK IF THIS A DECLARED OR C++ FUNCTION
-
-    return *this;
-}
-
-Costmap2D(const Costmap2D& map) {
-    costmap_ = NULL;
-    //access_ = new mute_t(); //For multithreading
-    *this = map;
-}
-
-Costmap2D() {
-    size_x_ = 0;
-    size_y_ = 0;
-    resolution = 0.0;
-    origin_x_ = 0.0;
-    origin_y_ = 0.0;
-    costmap_ = NULL;
-
-    //access_ = new mutex_t(); //For multithreading
-}
-
-~Costmap2D() {
-    deleteMaps();
-    //free access_; //For multithreading
-}
-
-bool setConvexPolygonCost(const Vector& polygon, unsigned char cost_value) {
+bool setConvexPolygonCost(const std::vector<geometry_msgs::Point>& polygon, unsigned char cost_value) {
     // we assume the polygon is given in the global_frame... we need to transform it to map coordinates
-    Vector map_polygon;
-    for (unsigned int i = 0; i < sizeof(polygon.data); ++i) {
+    std::vector<MapLocation> map_polygon;
+    for (unsigned int i = 0; i < polygon.size(); ++i) {
         MapLocation loc;
-        if (!worldToMap(polygon[i].x, polygon[i].y, loc.x, loc.y)) {
+        if (!worldToMap(polygon[i].x, polygon[i].y, loc.x, loc.y))
+        {
             // ("Polygon lies outside map bounds, so we can't fill it");
             return false;
         }
-    push_back_MapLocation(map_polygon, loc);
+        map_polygon.push_back(loc); //TODO: Helper function for push_back
     }
 
-    Vector polygon_cells;
+    std::vector<MapLocation> polygon_cells;
 
     // get the cells that fill the polygon
     convexFillCells(map_polygon, polygon_cells);
 
     // set the cost of those cells
-    for (unsigned int i = 0; i < sizeof(polygon_cells.data); ++i) {
+    for (unsigned int i = 0; i < polygon_cells.size(); ++i)
+    {
         unsigned int index = getIndex(polygon_cells[i].x, polygon_cells[i].y);
         costmap_[index] = cost_value;
     }
-
     return true;
 }
 
-void polygonOutlineCells(const Vector polygon, Vector polygon_cells) {
-    PolygonOutlineCells cell_gatherer(*this, costmap_, polygon_cells);
-    for (unsigned int i = 0; i < sizeof(polygon.data) - 1; ++i) {
-        raytraceLine(cell_gatherer, polygon[i].x, polygon[i].y, polygon[i + 1].x, polygon[i + 1].y);
-    }
-    if (!polygon.empty()) {
-        unsigned int last_index = sizeof(polygon.data) - 1;
-        // we also need to close the polygon by going from the last point to the first
-        raytraceLine(cell_gatherer, polygon[last_index].x, polygon[last_index].y, polygon[0].x, polygon[0].y);
-    }
-}
-
-void convexFillCells(const Vector polygon, Vector polygon_cells) {
+void convexFillCells(const std::vector<MapLocation>& polygon, std::vector<MapLocation>& polygon_cells) {
     // we need a minimum polygon of a triangle
-    if (siseof(polygon.data) < 3) return;
+    if (polygon.size() < 3)
+        return;
 
     // first get the cells that make up the outline of the polygon
     polygonOutlineCells(polygon, polygon_cells);
@@ -372,12 +672,16 @@ void convexFillCells(const Vector polygon, Vector polygon_cells) {
     // quick bubble sort to sort points by x
     MapLocation swap;
     unsigned int i = 0;
-    while (i < sizeof(polygon_cells.data) - 1) {
-        if (polygon_cells[i].x > polygon_cells[i + 1].x) {
+    while (i < polygon_cells.size() - 1)
+    {
+        if (polygon_cells[i].x > polygon_cells[i + 1].x)
+        {
             swap = polygon_cells[i];
             polygon_cells[i] = polygon_cells[i + 1];
             polygon_cells[i + 1] = swap;
-            if (i > 0) --i;
+
+        if (i > 0)
+            --i;
         }
         else ++i;
     }
@@ -386,48 +690,97 @@ void convexFillCells(const Vector polygon, Vector polygon_cells) {
     MapLocation min_pt;
     MapLocation max_pt;
     unsigned int min_x = polygon_cells[0].x;
-    unsigned int max_x = polygon_cells[sizeof(polygon_cells.data) - 1].x;
+    unsigned int max_x = polygon_cells[polygon_cells.size() - 1].x;
 
     // walk through each column and mark cells inside the polygon
-    for (unsigned int x = min_x; x <= max_x; ++x) {
-        if (i >= sizeof(polygon_cells.data) - 1) break;
-        if (polygon_cells[i].y < polygon_cells[i + 1].y) {
+    for (unsigned int x = min_x; x <= max_x; ++x)
+    {
+        if (i >= polygon_cells.size() - 1)
+            break;
+
+        if (polygon_cells[i].y < polygon_cells[i + 1].y)
+        {
             min_pt = polygon_cells[i];
             max_pt = polygon_cells[i + 1];
         }
-        else {
-            min_pt = polygon_cells[i + 1];
-            max_pt = polygon_cells[i];
+        else
+        {
+        min_pt = polygon_cells[i + 1];
+        max_pt = polygon_cells[i];
         }
-        i += 2;
 
-        while (i < polygon_cells.size() && polygon_cells[i].x == x) {
-            if (polygon_cells[i].y < min_pt.y) min_pt = polygon_cells[i];
-            else if (polygon_cells[i].y > max_pt.y) max_pt = polygon_cells[i];
-            ++i;
+        i += 2;
+        while (i < polygon_cells.size() && polygon_cells[i].x == x)
+        {
+            if (polygon_cells[i].y < min_pt.y)
+                min_pt = polygon_cells[i];
+            else if (polygon_cells[i].y > max_pt.y)
+                max_pt = polygon_cells[i];
+        ++i;
         }
 
         MapLocation pt;
         // loop though cells in the column
-        for (unsigned int y = min_pt.y; y < max_pt.y; ++y) {
+        for (unsigned int y = min_pt.y; y < max_pt.y; ++y)
+        {
             pt.x = x;
             pt.y = y;
-            polygon_cells.push_back_MapLocation(pt);
+            polygon_cells.push_back(pt);
         }
     }
 }
 
-/*********************HELPER FUNCTIONS***********************/
+void polygonOutlineCells(const std::vector<MapLocation>& polygon, std::vector<MapLocation>& polygon_cells) {
+    PolygonOutlineCells cell_gatherer(*this, costmap_, polygon_cells); //TODO: investigate this type-cast caell_gatherer
+    for (unsigned int i = 0; i < polygon.size() - 1; ++i)
+    {
+        raytraceLine(cell_gatherer, polygon[i].x, polygon[i].y, polygon[i + 1].x, polygon[i + 1].y);
+    }
+    if (!polygon.empty())
+    {
+        unsigned int last_index = polygon.size() - 1;
+        // we also need to close the polygon by going from the last point to the first
+        raytraceLine(cell_gatherer, polygon[last_index].x, polygon[last_index].y, polygon[0].x, polygon[0].y);
+    }
+}
 
-//This assumes that vector is occupied by type 'MapLocation' points
-bool push_back_MapLocation(struct Vector vec, struct MapLocation pt) {
-    if (Vector.current_size == Vector.limit) {
-        printf("Vector reached its size limit")
-        return false;
+void updateWithOverwrite(costmap_2d::Costmap2D& master_grid, int min_i, int min_j, int max_i, int max_j) {
+    if (!enabled_) return;
+    unsigned char* master = master_grid.getCharMap();
+    unsigned int span = master_grid.getSizeInCellsX();
+
+    for (int j = min_j; j < max_j; j++) {
+        unsigned int it = span*j+min_i;
+        for (int i = min_i; i < max_i; i++) {
+            if (costmap_[it] != NO_INFORMATION) master[it] = costmap_[it];
+            it++;
+        }
     }
-    else {
-        Vector.data[Vector.current_size] = pt;
-        Vector.current_size++;
-        return true;
+}
+
+void updateWithMax(costmap_2d::Costmap2D& master_grid, int min_i, int min_j, int max_i, int max_j) {
+    if (!enabled_) return;
+
+    unsigned char* master_array = master_grid.getCharMap();
+    unsigned int span = master_grid.getSizeInCellsX();
+
+    for (int j = min_j; j < max_j; j++)
+    {
+        unsigned int it = j * span + min_i;
+        for (int i = min_i; i < max_i; i++)
+        {
+            if (costmap_[it] == NO_INFORMATION){
+            it++;
+            continue;
+        }
+
+        unsigned char old_cost = master_array[it];
+        if (old_cost == NO_INFORMATION || old_cost < costmap_[it]) master_array[it] = costmap_[it];
+        it++;
+        }
     }
+}
+
+unsigned char* getCharMap() {
+    return costmap_;
 }
