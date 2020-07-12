@@ -1,8 +1,9 @@
-#include "transform_functions"
+#include "occgrid_transform.h"
+#include "occgrid.h"
 
 /**
  * 
- * Overview in costmap generation:
+ * OVERVIEW OF COSTMAP GENERATION :
  *      When the laserScan data is published to the 'occgrid' node, the function <laserScanCallback> is called. This function transforms
  * laserScan data to a pointCloud and then buffers the pointCloud to the observation buffer. Once the pointCloud is transformed to 
  * global frame and added to the queue, the map can be updated using updateMap(). This function calls updateBounds(), which resizes 
@@ -10,25 +11,29 @@
  * specified 'cells'. Once the char array 'costap_' is updated, then updateCosts() (which calls updateWithOverwrite()) iterates through
  * the specifed occupancy grid and assigns the corresponding cost value from costap_.
  * 
+ * TODO :
+ *   (1) port "boost::shared_ptr<ObservationBuffer>"
+ *   (2) port "tfs::TransformException"
+ * 
  */ 
 
-void occgrid(const sensor_msg::LaserScanConstPtr& message, const boost::shared_ptr<ObservationBuffer>& buffer) {
-    sensor_msgs::PointCloud2 cloud; //Construct a similar struct
+void occgrid(const LaserScan& message, const boost::shared_ptr<ObservationBuffer>& buffer) {
+    PointCloud2 cloud; //Construct a similar struct
     cloud.header = message->header;
 
     try {
         projector_.transformLaserScanToPointClod(message->header.frame_if, *message, cloud, *tf_);
     }
     catch (tfs::TransformException &ex) {
-        printf("High fidelity enabled, but TF returned a transform exception to frame %s: %s", global_frame_.c_str(), ex.what());
-        projector_.projectLaser(*message, cloud); //projector_ comes from laser_geometry::LaserPorjection
+        printf("High fidelity enabled, but TF returned a transform exception to frame %s: %s", global_frame_.c_str(), ex.what()); //TODO: Possible helper functions
+        projector_.projectLaser(*message, cloud); //projector_ comes from laser_geometry::LaserProjection
     }
 
     buffer->bufferCloud(cloud);
 }
 
-void bufferCloud(const sensor_msgs::PointCloud1& cloud) {
-    geometry_msgs::PointStamped global origin;
+void bufferCloud(const PointCloud1& cloud) {
+    PointStamped global_origin;
 
     //create a new observation on the list to be populated
     observation_list_.push_front(Observation()); //TODO: implement helper function for push_front
@@ -38,7 +43,7 @@ void bufferCloud(const sensor_msgs::PointCloud1& cloud) {
 
     try {
         //given these observations come from sensor... we'll need to store the origin point of the sensor
-        geometry_msgs::PointStamped local_origin;
+        :PointStamped local_origin;
         local_origin.header.stamp = cloud.header.stamp;
         local_origin.header.frame_id = origin_frame;
         local_origin.point.x = 0;
@@ -58,7 +63,7 @@ void bufferCloud(const sensor_msgs::PointCloud1& cloud) {
     global_frame_cloud.header.stamp = cloud.header.stamp;
 
     // now we need to remove observations from the cloud that are below or above our height thresholds
-    sensor_msgs::PointCloud2& observation_cloud = *(observation_list_.front().cloud_); //TODO: implement helper function for front()
+    PointCloud2& observation_cloud = *(observation_list_.front().cloud_); //TODO: implement helper function for front()
     observation_cloud.height = global_frame_cloud.height;
     observation_cloud.width = global_frame_cloud.width;
     observation_cloud.fields = global_frame_cloud.fields;
@@ -74,7 +79,7 @@ void bufferCloud(const sensor_msgs::PointCloud1& cloud) {
 
     // copy over the points that are within our height bounds
     sensor_msgs::PointCloud2Iterator<float> iter_z(global_frame_cloud, "z"); //TODO: implement helper function for iter_z
-    std::vector<unsigned char>::const_iterator iter_global = global_frame_cloud.data.begin(), iter_global_end = global_frame_cloud.data.end();
+    std::vector<unsigned char>::const_iterator iter_global = global_frame_cloud.data.begin(), iter_global_end = global_frame_cloud.data.end(); //TODO: port vector::*iterator
     std::vector<unsigned char>::iterator iter_obs = observation_cloud.data.begin();
     for (; iter_global != iter_global_end; ++iter_z, iter_global += global_frame_cloud.point_step) {
       if ((*iter_z) <= max_obstacle_height_ && (*iter_z) >= min_obstacle_height_) {
@@ -128,12 +133,12 @@ void purgeStaleObservations() {
 
 void updateMap(double robot_x, double robot_y, double robot_yaw) {
     //Lock for the remainder of this function, some plugins (e.g. VoxelLayer) implement threade unsafe updateBounds() functions.
-    boost::unique_lock<Costmap2D::mutex_t> lock(*(costmap_.getMutex()));
+    //boost::unique_lock<Costmap2D::mutex_t> lock(*(costmap_.getMutex())); //Uncomment and port to C if multi-thread
 
     // if we're using a rolling buffer costmap... we need to update the origin using the robot's position
     if (rolling_window_)
     {
-        double new_origin_x = robot_x - costmap_.getSizeInMetersX() / 2; //TODO: implement getSizeInMetersX() helper function
+        double new_origin_x = robot_x - costmap_.getSizeInMetersX() / 2;
         double new_origin_y = robot_y - costmap_.getSizeInMetersY() / 2;
         costmap_.updateOrigin(new_origin_x, new_origin_y);
     }
@@ -189,7 +194,18 @@ void updateMap(double robot_x, double robot_y, double robot_yaw) {
     initialized_ = true;
 }
 
-void uodateOrigin(double new_origin_x, double new_origin_y) {
+double getSizeInMetersX()
+{
+  return (size_x_ - 1 + 0.5) * resolution_;
+}
+
+double getSizeInMetersY()
+{
+  return (size_y_ - 1 + 0.5) * resolution_;
+
+}
+
+void updateOrigin(double new_origin_x, double new_origin_y) {
     // project the new origin into the grid
     int cell_ox, cell_oy;
     cell_ox = int((new_origin_x - origin_x_) / resolution_);
@@ -220,7 +236,7 @@ void uodateOrigin(double new_origin_x, double new_origin_y) {
     unsigned int cell_size_y = upper_right_y - lower_left_y;
 
     // we need a map to store the obstacles in the window temporarily
-    unsigned char* local_map = new unsigned char[cell_size_x * cell_size_y];
+    unsigned char* local_map = /*new*/ unsigned char[cell_size_x * cell_size_y]; //Uncomment if in C++
 
     // copy the local window in the costmap to the local map
     copyMapRegion(costmap_, lower_left_x, lower_left_y, size_x_, local_map, 0, 0, cell_size_x, cell_size_x, cell_size_y);
@@ -240,7 +256,7 @@ void uodateOrigin(double new_origin_x, double new_origin_y) {
     copyMapRegion(local_map, 0, 0, cell_size_x, costmap_, start_x, start_y, size_x_, cell_size_x, cell_size_y);
 
     // make sure to clean up
-    delete[] local_map;
+    /*delete[]*/ local_map; //Uncomment if C++
 }
 
 template<typename data_type>//TODO: Configure to plain C
@@ -272,7 +288,7 @@ void updateBounds(double robot_x, double robot_y, double robot_yaw, double* min_
     useExtraBounds(min_x, min_y, max_x, max_y);
 
     bool current = true;
-    std::vector<Observation> observations, clearing_observations;
+    /*std::vector<Observation>*/ Observation observations[], clearing_observations[]; //Uncomment and change if C++
 
     // get the marking observations
     current = current && getMarkingObservations(observations);
@@ -293,10 +309,10 @@ void updateBounds(double robot_x, double robot_y, double robot_yaw, double* min_
     for (std::vector<Observation>::const_iterator it = observations.begin(); it != observations.end(); ++it)
     {
         const Observation& obs = *it;
-        const sensor_msgs::PointCloud2& cloud = *(obs.cloud_);
+        const PointCloud2& cloud = *(obs.cloud_);
         double sq_obstacle_range = obs.obstacle_range_ * obs.obstacle_range_;
 
-        sensor_msgs::PointCloud2ConstIterator<float> iter_x(cloud, "x");
+        sensor_msgs::PointCloud2ConstIterator<float> iter_x(cloud, "x"); //TODO: port declaration type to C
         sensor_msgs::PointCloud2ConstIterator<float> iter_y(cloud, "y");
         sensor_msgs::PointCloud2ConstIterator<float> iter_z(cloud, "z");
 
@@ -338,10 +354,10 @@ void updateBounds(double robot_x, double robot_y, double robot_yaw, double* min_
 void useExtraBounds(doulbe* min_x, double* min_y, double* max_x, double* max_y) {
     if (!has_extra_bounds) return;
 
-    *min_x = std::min(extra_min_x_, *min_x);
-    *min_y = std::min(extra_min_y_, *min_y);
-    *max_x = std::max(extra_max_x_, *max_x);
-    *max_y = std::max(extra_max_y_, *max_y);
+    *min_x = min(extra_min_x_, *min_x); //TODO: Helper function for min() and max()
+    *min_y = min(extra_min_y_, *min_y);
+    *max_x = max(extra_max_x_, *max_x);
+    *max_y = max(extra_max_y_, *max_y);
     extra_min_x_ = 1e6;
     extra_min_y_ = 1e6;
     extra_max_x_ = -1e6;
@@ -349,7 +365,7 @@ void useExtraBounds(doulbe* min_x, double* min_y, double* max_x, double* max_y) 
     has_extra_bounds_ = false;
 }
 
-bool getMarkingObservations(std::vector<Observation>& marking_observations) {
+bool getMarkingObservations(Observation& marking_observations[]) {
     bool current = true;
     
     // get the marking observations
@@ -366,23 +382,23 @@ bool getMarkingObservations(std::vector<Observation>& marking_observations) {
 }
 
 
-bool getClearingObservations(std::vector<Observation>& clearing_observations) {
+bool getClearingObservations(Observation& clearing_observations[]) {
     bool current = true;
 
     // get the clearing observations
     for (unsigned int i = 0; i < clearing_buffers_.size(); ++i) //TODO: Remove lock/unlock calls
     {
-        clearing_buffers_[i]->lock();
+        //clearing_buffers_[i]->lock(); //Uncomment and update if multi-thread
         clearing_buffers_[i]->getObservations(clearing_observations);
         current = clearing_buffers_[i]->isCurrent() && current;
-        clearing_buffers_[i]->unlock();
+        //clearing_buffers_[i]->unlock(); //Uncomment and update if multi-thread
     }
     clearing_observations.insert(clearing_observations.end(),
                               static_clearing_observations_.begin(), static_clearing_observations_.end());
     return current;
 }
 
-void getObservations(vector<Observation>& observations) {
+void getObservations(Observation& observations[]) {
     //first, let's make sure that we don't ave any stake observations
     purgeStaleObservations();
 
@@ -409,7 +425,7 @@ bool isCurrent() {
 void raytraceFreespace(const Obseration& clearing_observation, double* min_x, double* min_y, double* max_x, double* max_y) {
     double ox = clearing_observation.origin_.x;
     double oy = clearing_observation.origin_.y;
-    const sensor_msgs::PointCloud2 &cloud = *(clearing_observation.cloud_);
+    const PointCloud2 &cloud = *(clearing_observation.cloud_);
 
     // get the map coordinates of the origin of the sensor
     unsigned int x0, y0;
@@ -500,10 +516,10 @@ bool worldToMap(double wx, double wy, unsigned int& mx, unsigned int& my) {
 }
 
 void touch(double x, double y, double* min_x, double* min_y, double* max_x, double* max_y) {
-    *min_x = std::min(x, *min_x);
-    *min_y = std::min(y, *min_y);
-    *max_x = std::max(x, *max_x);
-    *max_y = std::max(y, *max_y);
+    *min_x = min(x, *min_x);
+    *min_y = min(y, *min_y);
+    *max_x = max(x, *max_x);
+    *max_y = max(y, *max_y);
 }
 
 unsigned int cellDistance(double world_dist) {
@@ -512,7 +528,7 @@ unsigned int cellDistance(double world_dist) {
 }
 
 template<class ActionType> //TODO:
-void rayTtaceLine(ActionType at, unsigned int x0, unsgined int y0, unsigned int x1, unsigned int y1, unsigned int max_length = UNIT_MAX) { //TODO: Just in case, check if right function
+void rayTraceLine(ActionType at, unsigned int x0, unsgined int y0, unsigned int x1, unsigned int y1, unsigned int max_length = UNIT_MAX) { //TODO: Just in case, check if right function / define UNIT_MAX
     int dx = x1 - x0;
     int dy = y1 - y0;
 
@@ -525,8 +541,8 @@ void rayTtaceLine(ActionType at, unsigned int x0, unsgined int y0, unsigned int 
     unsigned int offset = y0 * size_x_ + x0;
 
     // we need to chose how much to scale our dominant dimension, based on the maximum length of the line
-    double dist = hypot(dx, dy);
-    double scale = (dist == 0.0) ? 1.0 : std::min(1.0, max_length / dist);
+    double dist = hypot(dx, dy); //TODO Helper function
+    double scale = (dist == 0.0) ? 1.0 : min(1.0, max_length / dist);
 
     // if x is dominan
 
@@ -545,7 +561,7 @@ void rayTtaceLine(ActionType at, unsigned int x0, unsgined int y0, unsigned int 
 template<class ActionType> //TODO:
 void bresenham2D(ActionType at, unsigned int abs_da, unsigned int abs_db, int error_b, int offset_a,
                         int offset_b, unsigned int offset, unsigned int max_length) {
-    unsigned int end = std::min(max_length, abs_da);
+    unsigned int end = min(max_length, abs_da);
     for (unsigned int i = 0; i < end; ++i)
     {
         at(offset);
@@ -564,7 +580,7 @@ void updateRaytraceBounds(double ox, double oy, double wx, double wy, double ran
                           double* min_x, double* min_y, double* max_x, double* max_y) {
     double dx = wx-ox, dy = wy-oy;
     double full_distance = hypot(dx, dy);
-    double scale = std::min(1.0, range / full_distance);
+    double scale = min(1.0, range / full_distance);
     double ex = ox + dx * scale, ey = oy + dy * scale;
     touch(ex, ey, min_x, min_y, max_x, max_y);
 }
@@ -619,7 +635,7 @@ void updateCosts() {
     if (!enabled_) return;
 
     if (footprint_clearing_enabled_) {
-        setConvexPolygonCost(transformed_footprint_, costmap_2d::FREE_SPACE);
+        setConvexPolygonCost(transformed_footprint_, FREE_SPACE); //TODO: Define FREE_SPACE
     }
 
     switch (combination_method_) {
@@ -636,7 +652,7 @@ void updateCosts() {
 
 bool setConvexPolygonCost(const std::vector<geometry_msgs::Point>& polygon, unsigned char cost_value) {
     // we assume the polygon is given in the global_frame... we need to transform it to map coordinates
-    std::vector<MapLocation> map_polygon;
+    MapLocation map_polygon[];
     for (unsigned int i = 0; i < polygon.size(); ++i) {
         MapLocation loc;
         if (!worldToMap(polygon[i].x, polygon[i].y, loc.x, loc.y))
@@ -647,7 +663,7 @@ bool setConvexPolygonCost(const std::vector<geometry_msgs::Point>& polygon, unsi
         map_polygon.push_back(loc); //TODO: Helper function for push_back
     }
 
-    std::vector<MapLocation> polygon_cells;
+    MapLocation polygon_cells[];
 
     // get the cells that fill the polygon
     convexFillCells(map_polygon, polygon_cells);
@@ -661,7 +677,7 @@ bool setConvexPolygonCost(const std::vector<geometry_msgs::Point>& polygon, unsi
     return true;
 }
 
-void convexFillCells(const std::vector<MapLocation>& polygon, std::vector<MapLocation>& polygon_cells) {
+void convexFillCells(const MapLocation& polygon[], MapLocation& polygon_cells[]) {
     // we need a minimum polygon of a triangle
     if (polygon.size() < 3)
         return;
@@ -730,7 +746,7 @@ void convexFillCells(const std::vector<MapLocation>& polygon, std::vector<MapLoc
     }
 }
 
-void polygonOutlineCells(const std::vector<MapLocation>& polygon, std::vector<MapLocation>& polygon_cells) {
+void polygonOutlineCells(const MapLocation& polygon[], MapLocation& polygon_cells[]) {
     PolygonOutlineCells cell_gatherer(*this, costmap_, polygon_cells); //TODO: investigate this type-cast caell_gatherer
     for (unsigned int i = 0; i < polygon.size() - 1; ++i)
     {
@@ -744,7 +760,7 @@ void polygonOutlineCells(const std::vector<MapLocation>& polygon, std::vector<Ma
     }
 }
 
-void updateWithOverwrite(costmap_2d::Costmap2D& master_grid, int min_i, int min_j, int max_i, int max_j) {
+void updateWithOverwrite(Costmap2D& master_grid, int min_i, int min_j, int max_i, int max_j) {
     if (!enabled_) return;
     unsigned char* master = master_grid.getCharMap();
     unsigned int span = master_grid.getSizeInCellsX();
@@ -752,13 +768,13 @@ void updateWithOverwrite(costmap_2d::Costmap2D& master_grid, int min_i, int min_
     for (int j = min_j; j < max_j; j++) {
         unsigned int it = span*j+min_i;
         for (int i = min_i; i < max_i; i++) {
-            if (costmap_[it] != NO_INFORMATION) master[it] = costmap_[it];
+            if (costmap_[it] != NO_INFORMATION) master[it] = costmap_[it]; //TODO: NO_INFORMATION
             it++;
         }
     }
 }
 
-void updateWithMax(costmap_2d::Costmap2D& master_grid, int min_i, int min_j, int max_i, int max_j) {
+void updateWithMax(Costmap2D& master_grid, int min_i, int min_j, int max_i, int max_j) {
     if (!enabled_) return;
 
     unsigned char* master_array = master_grid.getCharMap();
