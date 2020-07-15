@@ -1,32 +1,134 @@
 #include "occgrid.h"
 #include <math.h>
+#include <time.h>
 
-/*
- *
- * TODO:
- *  1) Define global structs/variables
- *  2) Implement transformLaserScanToPointCloud() function
- *  3) Implement tf2_ros::Buffer tf for transform function
- * 
- */
+/* TODO: Define LETHAL_SPACE & FREE_SPACE 
+         Convert costmap to occupancy_grid
+         */
 
-void occgrid(const LaserScan& message) {
-    struct PointCloud2 cloud;
-    cloud.header = message->header;
 
-    projector_.transformLaserScanToPointCloud(message->header.frame_id, *message, cloud, *tf_);
+
+struct Header {
+    // Standard metadata for higher-level stamped data types.
+    // This is generally used to communicate timestamped data 
+    // in a particular coordinate frame. 
+    // sequence ID: consecutively increasing ID 
+    unsigned int seq;
+    // Two-integer timestamp that is expressed as:
+    // * stamp.sec: seconds (stamp_secs) since epoch (in Python the variable is called 'secs')
+    // * stamp.nsec: nanoseconds since stamp_secs (in Python the variable is called 'nsecs')
+    // time-handling sugar is provided by the client library
+    time stamp;
+    // Frame this data is associated with
+    string frame_id;
+};
+
+struct geometry_msgs_Point {
+    // This contains the position of a point in free space
+    double x;
+    double y;
+    double z;
+} typedef Point;
+
+struct geometry_msgs_Quaternion {
+    // This represents an orientation in free space in quaternion form.
+    double x;
+    double y;
+    double z;
+    double w;
+} typedef Quaternion;
+
+struct geometry_msgs_Pose {
+    // A representation of pose in free space, composed of position and orientation. 
+    Point position;
+    Quaternion orientation;
+} typedef Pose;
+
+struct MapMetaData {
+    // This hold basic information about the characterists of the OccupancyGrid
+
+    // The time at which the map was loaded
+    time map_load_time;
+    // The map resolution [m/cell]
+    float resolution;
+    // Map width [cells]
+    unsigned int width;
+    // Map height [cells]
+    unsigned int height;
+    // The origin of the map [m, m, rad].  This is the real-world pose of the
+    // cell (0,0) in the map.
+    Pose origin;
+};
+
+struct nav_msgs_OccupancyGrid {
+    // This represents a 2-D grid map, in which each cell represents the probability of
+    // occupancy.
+    Header header; 
+    // MetaData for the map
+    MapMetaData info;
+    // The map data, in row-major order, starting with (0,0).  Occupancy
+    // probabilities are in the range [0,100].  Unknown is -1.
+    unsigned short data[];
+} typedef OccGrid;
+
+struct Costmap2D {
+    unsigned int size_x_;
+    unsigned int size_y_;
+    double resolution_;
+    double origin_x_;
+    double origin_y_;
+    unsigned char* costmap_;
+    unsigned char default_value_;
+};
+
+/*********** Global Variables ************/
+
+struct OccGrid occgrid_;
+struct Costmap2D costmap;
+
+double origin_x_, origin_y_;
+double size_x_, size_y_;
+float resolution_;
+
+/*************** Functions ***************/
+
+void cloud_to_occgrid(cloud, occgrid) {
+    //TODO: Retrieve robot's position and orientation information; robot_x, robot_y, robot_yaw
+
+    //Retireve map metadata and assign to corresponding global variables
+    initGrid(occgrid);
+
+    updateMap(cloud, robot_x, robot_y, robot_yaw);
 }
 
-void updateMap() {
+void initGrid(const OccGrid& occgrid) {
+    occgrid_ = occgrid;
+    origin_x_ = occgrid.info.Pose.x;
+    origin_y_ = occgrid.info.Pose.y;
+    size_x_ = occgrid.info.width;
+    size_y_ = occgrid.info.height;
+    resolution_ = occgrid.info.resolution;
+
+    //Initialize costmap as well
+    costmap.origin_x_ = origin_x_;
+    costmap.origin_y_ = origin_y_;
+    costmap.size_x_ = size_x_;
+    costmap.size_y_ = size_y_;
+    costmap.resolution_ = resolution_;
+}
+
+void updateMap(const PointCloud& cloud, double robot_x, double robot_y, double robot_yaw) {
     // if we're using a rolling buffer costmap... we need to update the origin using the robot's pose
     if (rolling_window_) {
-        double new_origin_x = robot_x - size_x_ / 2; //global variable size_x_ and size_y_
+        double new_origin_x = robot_x - size_x_ / 2; 
         double new_origin_y = robot_y - size_y_ / 2;
-        costmap_.updateOrigin(new_origin_x, new_origin_y);
+        updateOrigin(costmap, new_origin_x, new_origin_y); 
     }
 
-    minx_ = miny_ = 1e30; //TODO: Where is minx_ and miny_ declared?
-    maxx_ = maxy_ = -1e30;
+    double minx_ = 1e30;
+    double miny_ = 1e30;
+    double maxx_ = -1e30;
+    double maxy_ = -1e30;
 
     double prev_minx_ = minx_;
     double prev_miny_ = miny_;
@@ -39,18 +141,18 @@ void updateMap() {
 void updateOrigin(struct Costmap2D costmap, double new_origin_x, double new_origin_) {
     //project the new origin into the grid
     int cell_ox, cell_oy;
-    cell_ox = int((new_origin_x - costmap.origin_x_) / costmap.resolution_);
-    cell_oy = int((new_origin_y - costmap.origin_y_) / costmap.resolution_);
+    cell_ox = int((new_origin_x - origin_x_) / resolution_);
+    cell_oy = int((new_origin_y - origin_y_) / resolution_);
 
     // compute the associated world coordinates for the origin cell
     // because we want to keep things grid-aligned
     double new_grid_ox, new_grid_oy;
-    new_grid_ox = costmap.origin_x_ + cell_ox * costmap.resolution_;
-    new_grid_oy = costmap.origin_y_ + cell_oy * costmap.resolution_;
+    new_grid_ox = origin_x_ + cell_ox * resolution_;
+    new_grid_oy = origin_y_ + cell_oy * resolution_;
 
     // To save casting from unsigned int to int a bunch of times
-    int size_x = costmap.size_x_;
-    int size_y = costmap.size_y_;
+    int size_x = size_x_;
+    int size_y = size_y_;
 
     // we need to compute the overlap of the new and existing windows
     int lower_left_x, lower_left_y, upper_right_x, upper_right_y;
@@ -66,7 +168,7 @@ void updateOrigin(struct Costmap2D costmap, double new_origin_x, double new_orig
     unsigned char* local_map = /*new*/ unsigned char[cell_size_x * cell_size_y]; //Uncomment if in C++
 
     // copy the local window in the costmap to the local map
-    copyMapRegion(costmap.costmap_, lower_left_x, lower_left_y, costmap.size_x_, local_map, 0, 0, cell_size_x, cell_size_x, cell_size_y);
+    copyMapRegion(costmap.costmap_, lower_left_x, lower_left_y, costmap.size_x_, local_map, 0, 0, cell_size_x, cell_size_x, cell_size_y); //TODO: Reconfigure map reference
 
     // now we'll set the costmap to be completely unknown if we track unknown space
     resetMaps();
@@ -93,7 +195,7 @@ void copyMapRegion(unsigned char* source_map, unsigned int sm_lower_left_x, unsi
 
     // now, we'll copy the source map into the destination map
     for (unsigned int i = 0; i < region_size_y; ++i){
-        memcpy(dm_index, sm_index, region_size_x * sizeof(data_type));
+        memcpy(dm_index, sm_index, region_size_x * sizeof(unsigned char*));
         sm_index += sm_size_x;
         dm_index += dm_size_x;
     }
@@ -106,7 +208,7 @@ void resetMaps() {
 void updateBounds(double robot_x, double robot_y, double robot_yaw, double* min_x, double* min_y, double* max_x, double* max_y) {
 
     //raytrace free space
-    raytraceFreespace(observation, min_x, min_y, max_X, max_y);
+    raytraceFreespace(observation_, min_x, min_y, max_X, max_y);
 
     //Iterate through cloud to register obstacles within costmap
     for(unsigned int i = 0; i < cloud.data.size(); i++) {
@@ -120,14 +222,14 @@ void updateBounds(double robot_x, double robot_y, double robot_yaw, double* min_
             worldToMap(px, py, mx, my);
 
             unsigned int index = getIndex(mx, my);
-            costmap_[index] = LETHAL_OBSTACLE;
+            costmap.costmap_[index] = LETHAL_OBSTACLE;
             touch(px, py, min_x, min_y, max_x, max_y);
         }
     }
 }
 
 void raytraceFreespace(const Obseration& clearing_observation, double* min_x, double* min_y, double* max_x, double* max_y) {
-    //TODO: Modify to remove Observation
+    //TODO: Modify to remove Observation; retrieve clouds origin
     double ox = clearing_observation.origin_.x;
     double oy = clearing_observation.origin_.y;
     const PointCloud2 &cloud = *(clearing_observation.cloud_);
@@ -185,7 +287,7 @@ void raytraceFreespace(const Obseration& clearing_observation, double* min_x, do
         // now that the vector is scaled correctly... we'll get the map coordinates of its endpoint
         unsigned int x1, y1;
 
-        unsigned int cell_raytrace_range = cellDistance(<REFERENCE>.raytrace_range_); //TODO: Create an object that holds the raytrace_range info
+        unsigned int cell_raytrace_range = cellDistance(observation_.raytrace_range_); //TODO: Create an object that holds the raytrace_range info
 
         // and finally... we can execute our trace to clear obstacles along that line
         raytraceLine(x0, y0, x1, y1, cell_raytrace_range);
@@ -298,4 +400,31 @@ int sign (int x) {
 int abs(int x) {
     if (x < 0.0) return x * -1.0;
     else return x;
+}
+
+double getSizeInMetersX() {
+  return (size_x_ - 1 + 0.5) * resolution_;
+}
+
+double getSizeInMetersY() {
+  return (size_y_ - 1 + 0.5) * resolution_;
+}
+
+bool initObservation(const PointCloud2& cloud) {
+    observation_.origin_.x = ;
+    observation_.origin_.y = ;
+    observation_.origin_.z = ;
+    observation_.cloud_ = cloud; //TODO: Check pointer logic/syntax
+    observation_.obstacle_range_ = ;
+    observation_.raytrace_range_ = ; //TODO: Get info from param
+
+    cloud_.header = cloud.header;
+    cloud_.height = cloud.height;
+    cloud_.width = cloud.width;
+    cloud_.fields = cloud.fields;
+    cloud_.is_bigendian = cloud.is_bigendian;
+    cloud_.point_step = cloud.point_step;
+    cloud_.row_step = cloud.row_step;
+    cloud_.data = cloud.data;
+    cloud_.is_dense = cloud.is_dense;
 }
