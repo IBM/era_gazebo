@@ -33,7 +33,7 @@ double getSizeInMetersY() {
 
 unsigned int getIndex(unsigned int i, unsigned int j) {
     //printf("size_x * j + i = %d * %d + %d = %d", master_observation.master_costmap.size_x, j, i, master_observation.master_costmap.size_x * j + i);
-    return master_observation.master_costmap.size_x * j + i;
+    return (master_observation.master_costmap.size_x / master_observation.master_resolution) * j + i;
 }
 
 /******************* FUNCTIONS *********************/
@@ -50,11 +50,12 @@ void cloudToOccgrid(const PointCloud2 cloud, const Odometry odom) {
 
 void updateMap(PointCloud2 cloud, double robot_x, double robot_y, double robot_yaw, const Odometry odom) {
     if (master_observation.rolling_window_) {
-        //printf("<<%d, %d>> ... ", master_observation.master_costmap.size_x, master_observation.master_costmap.size_y);
+        printf("\nUpdating Map .... \n");
+        printf("   robot_x = %f, robot_y = %f, robot_yaw = %f \n", robot_x, robot_y, robot_yaw);
+        printf("   Master Origin = (%f, %f)\n", master_observation.master_origin.x, master_observation.master_origin.y);
         double new_origin_x = robot_x - master_observation.master_costmap.size_x / 2;
         double new_origin_y = robot_y - master_observation.master_costmap.size_y / 2;
-        //printf("<<%f, %f>>\n ", new_origin_x, new_origin_y);
-        updateOrigin(new_origin_x, new_origin_y); //TODO: Retrieve costmap as argument parameter or global variable
+        updateOrigin(new_origin_x, new_origin_y);
     }
 
     double minx_ = 1e30;
@@ -75,15 +76,16 @@ void updateMap(PointCloud2 cloud, double robot_x, double robot_y, double robot_y
 }
 
 void updateOrigin(double new_origin_x, double new_origin_y) {
-    printf("Updating Map Origin\n");
+    printf("\nUpdating Map Origin\n");
+    //printf("New Origin -> <%f, %f>\n ", new_origin_x, new_origin_y);
 
     //project the new origin into the grid
     int cell_ox, cell_oy;
-    //printf("Old Origin = <%f, %f> ... ", master_observation.master_origin.x, master_observation.master_origin.y);
-    //printf("New Origin = <%f, %f>\n", new_origin_x, new_origin_y);
+    printf("Old Origin = <%f, %f> ... ", master_observation.master_origin.x, master_observation.master_origin.y);
+    printf("New Origin = <%f, %f>\n", new_origin_x, new_origin_y);
     cell_ox = (int) ((new_origin_x - master_observation.master_origin.x) / master_observation.master_resolution);
     cell_oy = (int) ((new_origin_y - master_observation.master_origin.y) / master_observation.master_resolution);
-    //printf("New Cell Origin = <%d, %d>\n", cell_ox, cell_oy);
+    printf("New Cell Origin = <%d, %d>\n", cell_ox, cell_oy);
 
     // compute the associated world coordinates for the origin cell
     // because we want to keep things grid-aligned
@@ -93,8 +95,8 @@ void updateOrigin(double new_origin_x, double new_origin_y) {
     //printf("New Grid Origin = <%f, %f> (Should be same as new_origin_x and new_origin_y)\n", new_grid_ox, new_grid_oy);
 
     // To save casting from unsigned int to int a bunch of times
-    int size_x = master_observation.master_costmap.size_x;
-    int size_y = master_observation.master_costmap.size_y;
+    int size_x = master_observation.master_costmap.size_x / master_observation.master_resolution;
+    int size_y = master_observation.master_costmap.size_y / master_observation.master_resolution;
 
     // we need to compute the overlap of the new and existing windows
     int lower_left_x, lower_left_y, upper_right_x, upper_right_y;
@@ -104,8 +106,8 @@ void updateOrigin(double new_origin_x, double new_origin_y) {
     upper_right_y = min(max(cell_oy + size_y, 0), size_y);
     //printf("The Corner Coordinates for Window = {%d, %d} {%d, %d}\n", lower_left_x, lower_left_y, upper_right_x, upper_right_y);
 
-    unsigned int cell_size_x = upper_right_x - lower_left_x;
-    unsigned int cell_size_y = upper_right_y - lower_left_y;
+    unsigned int cell_size_x = (upper_right_x - lower_left_x);
+    unsigned int cell_size_y = (upper_right_y - lower_left_y);
     //printf("Cell Sizes from Corner Coordinates = %d, %d\n", cell_size_x, cell_size_y);
 
     // we need a map to store the obstacles in the window temporarily
@@ -126,8 +128,8 @@ void updateOrigin(double new_origin_x, double new_origin_y) {
 
     // copy the local window in the costmap to the local map
     copyMapRegion(master_observation.master_costmap.costmap_, lower_left_x, lower_left_y,
-                  master_observation.master_costmap.size_x, start_x, start_y,
-                  master_observation.master_costmap.size_x, cell_size_x, cell_size_y);
+                  master_observation.master_costmap.size_x / master_observation.master_resolution, start_x, start_y,
+                  master_observation.master_costmap.size_x / master_observation.master_resolution, cell_size_x, cell_size_y);
 
 
     // now we want to copy the overlapping information back into the map, but in its new location
@@ -140,32 +142,41 @@ void copyMapRegion(unsigned char* source_map, unsigned int sm_lower_left_x, unsi
                        unsigned int dm_lower_left_y, unsigned int dm_size_x, unsigned int region_size_x,
                        unsigned int region_size_y) {
 // we'll first need to compute the starting points for each map
+    //printf("CopyMapRegion() Input Parameters: \n ... sm_lower_left_x = %d,\n ... sm_lowerLeft_y = %d,\n ... sm_size_x = %d,\n ... dm_lower_left_x = %d,\n ... dm_lower_left_y = %d,\n ... dm_size_x = %d,\n ... regions_size_x = %d,\n ... region_size_y = %d\n",sm_lower_left_x, sm_lower_left_y, sm_size_x, dm_lower_left_x, dm_lower_left_y, dm_size_x, region_size_x, region_size_y);
     unsigned int sm_index = (sm_lower_left_y * sm_size_x + sm_lower_left_x);
     unsigned int dm_index = (dm_lower_left_y * dm_size_x + dm_lower_left_x);
-    //printf("%s\n", master_observation.master_costmap.default_value);
+    //printf("%c\n", master_observation.master_costmap.default_value);
     //printf("{sm_index = %d, dm_index = %d}\n", sm_index, dm_index);
 
-    char* local_costmap [master_observation.master_costmap.size_x * master_observation.master_costmap.size_y];
-    for (int i = 0; i < master_observation.master_costmap.size_x * master_observation.master_costmap.size_y; i++) {
+    unsigned int cell_size_x = master_observation.master_costmap.size_x / master_observation.master_resolution;
+    unsigned int cell_size_y = master_observation.master_costmap.size_y / master_observation.master_resolution;
+
+    //printf("\n Copying Map... \nRegion Size of Map -> <%d, %d>\n", region_size_x, region_size_y);
+    char* local_costmap [cell_size_x * cell_size_y];
+    for (int i = 0; i < cell_size_x * cell_size_y; i++) {
         local_costmap[i] = master_observation.master_costmap.default_value;
+        //printf("%d, ", local_costmap[i]);
     }
 
     // now, we'll copy the source map into the destination map
     for (unsigned int i = 0; i < region_size_y; ++i){
         for (unsigned int j = 0; j < region_size_x; j++) {
-            //printf("Source Map Value at Index <%d> = %s\n", sm_index, master_observation.master_costmap.costmap_[sm_index]);
+            //printf("Source Map Value at Index <%d> = %d\n", sm_index, master_observation.master_costmap.costmap_[sm_index]);
             local_costmap[dm_index] = master_observation.master_costmap.costmap_[sm_index];
+            //printf("dm_index, sm_index = %d, %d\n", dm_index, sm_index);
             sm_index++;
             dm_index++;
         }
         if (master_observation.master_costmap.size_x != region_size_x) {
-            sm_index = sm_index + (master_observation.master_costmap.size_x - region_size_x);
-            dm_index = dm_index + (master_observation.master_costmap.size_x - region_size_x);
+            sm_index = sm_index + (master_observation.master_costmap.size_x / master_observation.master_resolution - region_size_x);
+            dm_index = dm_index + (master_observation.master_costmap.size_x / master_observation.master_resolution - region_size_x);
         }
         //memcpy(dm_index, sm_index, region_size_x * sizeof(unsigned char*));
     }
 
-    for (int i = 0; i < master_observation.master_costmap.size_x * master_observation.master_costmap.size_y; i++) {
+    //printf("We made it!\n");
+
+    for (int i = 0; i < cell_size_x * cell_size_y; i++) {
         master_observation.master_costmap.costmap_[i] = local_costmap[i];
     }
 }
@@ -180,7 +191,7 @@ void updateBounds(PointCloud2 cloud, float *points, double robot_x, double robot
     //raytrace free space
     raytraceFreespace(cloud, cloud.data, min_x, min_y, max_x, max_y, odom); //TODO: Reconfigure for 'cloud' parameter
 
-    printf("Number of elements : %d\n", sizeof(cloud.data) / sizeof(cloud.data[0]));
+    //printf("Number of elements : %d\n", sizeof(cloud.data) / sizeof(cloud.data[0]));
 
     //Iterate through cloud to register obstacles within costmap
     for(unsigned int i = 0; i < sizeof(cloud.data) / sizeof(cloud.data[0]); i = i + 3) { //TODO: Test if sizeof(points) works correctly
@@ -219,7 +230,7 @@ void raytraceFreespace(const PointCloud2 cloud, const float* points, double min_
     unsigned int x0, y0;
     if (!worldToMap(ox, oy))
     {
-        printf("The origin for the sensor at (%.2f, %.2f) is out of map bounds. So, the costmap cannot raytrace for it.", ox, oy);
+        printf("The origin for the sensor at (%.2f, %.2f) is out of map bounds. So, the costmap cannot raytrace for it.\n", ox, oy);
         return;
     }
     x0 = master_observation.map_coordinates.x;
@@ -229,7 +240,7 @@ void raytraceFreespace(const PointCloud2 cloud, const float* points, double min_
     // we can pre-compute the endpoints of the map outside of the inner loop... we'll need these later
     double map_end_x = master_observation.master_origin.x + master_observation.master_costmap.size_x * master_observation.master_resolution;
     double map_end_y = master_observation.master_origin.y + master_observation.master_costmap.size_y * master_observation.master_resolution;
-    printf(">>> End of Map Coordinates -> <%f, %f>\n", map_end_x, map_end_y);
+    //printf(">>> End of Map Coordinates -> <%f, %f>\n", map_end_x, map_end_y);
 
     touch(ox, oy, min_x, min_y, max_x, max_y);
 
@@ -276,7 +287,7 @@ void raytraceFreespace(const PointCloud2 cloud, const float* points, double min_
         y1 = master_observation.map_coordinates.y;
 
         unsigned int cell_raytrace_range = cellDistance(master_observation.raytrace_range_);
-        printf(">>> Cell Raytrace Range -> %d\n", cell_raytrace_range);
+        //printf(">>> Cell Raytrace Range -> %d\n", cell_raytrace_range);
 
         // and finally... we can execute our trace to clear obstacles along that line
         raytraceLine(x0, y0, x1, y1, cell_raytrace_range);
@@ -291,7 +302,7 @@ bool worldToMap(double wx, double wy) {
         return false;
     }
 
-    printf("(mx, my) -> (%d, %d)\n", (int)((wx - master_observation.master_origin.x) / master_observation.master_resolution), (int)((wy - master_observation.master_origin.y) / master_observation.master_resolution));
+    //printf("(mx, my) -> (%d, %d)\n", (int)((wx - master_observation.master_origin.x) / master_observation.master_resolution), (int)((wy - master_observation.master_origin.y) / master_observation.master_resolution));
     master_observation.map_coordinates.x = (int)((wx - master_observation.master_origin.x) / master_observation.master_resolution);
     master_observation.map_coordinates.y = (int)((wy - master_observation.master_origin.y) / master_observation.master_resolution);
 
@@ -311,14 +322,19 @@ void raytraceLine(unsigned int x0, unsigned int y0, unsigned int x1, unsigned in
     printf(">>> Raytrace Line from <%d, %d> to <%d, %d> \n", x0, y0, x1, y1);
     int dx = x1 - x0;
     int dy = y1 - y0;
+    //printf("dx, dy -> %d ,%d\n", dx, dy);
 
     unsigned int abs_dx = abs(dx);
     unsigned int abs_dy = abs(dy);
 
     int offset_dx = sign(dx);
-    int offset_dy = sign(dy) * master_observation.master_costmap.size_x;
+    //printf("offset_dx -> %d, \n", offset_dx);
+    //printf("cell_size_x -> %d \n", (int) (master_observation.master_costmap.size_x / master_observation.master_resolution));
+    int offset_dy = sign(dy) * (int) (master_observation.master_costmap.size_x / master_observation.master_resolution);
+    //printf("offset_dy -> %d \n", offset_dy);
 
-    unsigned int offset = y0 * master_observation.master_costmap.size_x + x0;
+    unsigned int offset = y0 * master_observation.master_costmap.size_x / master_observation.master_resolution + x0;
+    //printf("offset -> %d \n", offset);
 
     // we need to chose how much to scale our dominant dimension, based on the maximum length of the line
     double dist = hypot(dx, dy);
@@ -341,6 +357,7 @@ void raytraceLine(unsigned int x0, unsigned int y0, unsigned int x1, unsigned in
 void bresenham2D(unsigned int abs_da, unsigned int abs_db, int error_b, int offset_a,
                         int offset_b, unsigned int offset, unsigned int max_length) {
     unsigned int end = min(max_length, abs_da);
+    //printf("\n\n abs_da, end -> %d, %d\n", abs_da, end);
     for (unsigned int i = 0; i < end; ++i)
     {
         markCell(FREE_SPACE, offset);
@@ -356,6 +373,7 @@ void bresenham2D(unsigned int abs_da, unsigned int abs_db, int error_b, int offs
 }
 
 void markCell(unsigned char value, unsigned int offset) {
+    //printf("OFFSET -> %d\n", offset);
     master_observation.master_costmap.costmap_[offset] = value;
 }
 

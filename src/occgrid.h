@@ -9,9 +9,9 @@
 #define OCCGRID_H_
 
 //Define Costmap values
-#define NO_INFORMATION 255
-#define FREE_SPACE 2
-#define LETHAL_OBSTACLE 1
+#define NO_INFORMATION 254
+#define FREE_SPACE 0
+#define LETHAL_OBSTACLE 255
 
 //Define datatype values
 #define INT8    1;
@@ -97,7 +97,7 @@ typedef struct sensor_msgs_PointCloud2 {
     unsigned int row_step;
     bool is_dense;
     Pointfield* fields[3]; //TODO: Flexible array has to be at end, fix array size
-    float data[105]; //NOTE: Supposed to be int8 but does not exist in C
+    float data[14658]; //NOTE: Supposed to be int8 but does not exist in C
 } PointCloud2;
 
 typedef struct MapMetaData {
@@ -135,7 +135,7 @@ typedef struct Costmap2D {
     unsigned int size_x;
     unsigned int size_y;
     unsigned char default_value;
-    unsigned char costmap_[10000];
+    unsigned char costmap_[2500];
 } Costmap2D;
 
 typedef struct Observation {
@@ -151,6 +151,7 @@ typedef struct Observation {
 
 //Define global variables
 Observation master_observation;
+char data[175897];
 //PointCloud2 cloud;
 
 //Define functions
