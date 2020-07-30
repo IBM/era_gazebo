@@ -151,7 +151,7 @@ typedef struct Observation {
 
 //Define global variables
 Observation master_observation;
-char data[175897];
+char data[199992];
 //PointCloud2 cloud;
 
 //Define functions
@@ -173,7 +173,7 @@ void updateBounds(PointCloud2 cloud, float* points, double robot_x, double robot
 
 void raytraceFreespace(const PointCloud2 cloud, const float* points, double min_x, double min_y, double max_x, double max_y, const Odometry odom);
 
-bool worldToMap(double wx, double wy);
+bool worldToMap(double wx, double wy, const Odometry odom);
 
 unsigned int cellDistance(double world_dist);
 
@@ -190,5 +190,12 @@ void updateRaytraceBounds(double ox, double oy, double wx, double wy, double ran
 void touch(double x, double y, double min_x, double min_y, double max_x, double max_y);
 
 unsigned int getIndex(unsigned int x, unsigned int y);
+
+void printMap();
+
+void addStaticObstacle(unsigned char* obstacle_type);
+
+void initCostmap(bool rolling_window, double min_obstacle_height, double max_obstacle_height, double raytrace_range, unsigned int size_x,
+                 unsigned int size_y, double resolution, unsigned char default_value, double robot_x, double robot_y, double robot_z);
 
 #endif // OCCGRID_H_

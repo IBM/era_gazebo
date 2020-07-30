@@ -36,6 +36,59 @@ unsigned int getIndex(unsigned int i, unsigned int j) {
     return (master_observation.master_costmap.size_x / master_observation.master_resolution) * j + i;
 }
 
+void printMap() {
+    printf("map: \n");
+    for (int i = 0; i < master_observation.master_costmap.size_y / master_observation.master_resolution; i++) {
+        for (int j = 0; j < master_observation.master_costmap.size_x / master_observation.master_resolution; j++) {
+            int index = i * master_observation.master_costmap.size_y / master_observation.master_resolution + j;
+            printf("%4d", master_observation.master_costmap.costmap_[index]);
+        }
+        printf("\n\n");
+    }
+}
+
+void addStaticObstacle(unsigned char* obstacle_type) {
+    int cell_size_x = master_observation.master_costmap.size_x / master_observation.master_resolution;
+    int cell_size_y = master_observation.master_costmap.size_y / master_observation.master_resolution;
+    if (obstacle_type == "border") {
+        printf("Add Static Obstacle: Wall Border \n");
+        for (int i = 0; i < cell_size_x; i++) {
+            for (int j = 0; j < cell_size_y; j++) {
+                int index = cell_size_x * j + i;
+                if (i == (int) master_observation.master_origin.x || i == cell_size_x - 1) master_observation.master_costmap.costmap_[index] = LETHAL_OBSTACLE;
+                else if (j == (int) master_observation.master_origin.y || j == cell_size_y - 1 ) master_observation.master_costmap.costmap_[index] = LETHAL_OBSTACLE;
+            }
+        }
+    }
+}
+
+void initCostmap(bool rolling_window, double min_obstacle_height, double max_obstacle_height, double raytrace_range, unsigned int size_x,
+                 unsigned int size_y, double resolution, unsigned char default_value, double robot_x, double robot_y, double robot_z) {
+    printf("Initialize Master Costmap\n");
+
+    master_observation.rolling_window_ = rolling_window; //TODO:
+    master_observation.min_obstacle_height_ = min_obstacle_height; //TODO:
+    master_observation.max_obstacle_height_ = max_obstacle_height; //TODO:
+    master_observation.raytrace_range_ = raytrace_range; //TODO:
+
+    master_observation.master_costmap.size_x = size_x;
+    master_observation.master_costmap.size_y = size_y;
+    master_observation.master_costmap.default_value = default_value;
+
+    master_observation.master_resolution = resolution;
+
+    master_observation.master_origin.x = robot_x - (size_x - 1) / 2;
+    master_observation.master_origin.y = robot_y - (size_y - 1) / 2;
+    master_observation.master_origin.z = robot_z;
+    printf("Master Origin -> <%f, %f, %f>\n", master_observation.master_origin.x, master_observation.master_origin.y, master_observation.master_origin.z);
+
+    for (int i = 0; i < master_observation.master_costmap.size_x * master_observation.master_costmap.size_y / (master_observation.master_resolution * master_observation.master_resolution); i++) {
+        master_observation.master_costmap.costmap_[i] = master_observation.master_costmap.default_value;
+    }
+
+    printf("Initialize Master Costmap ... DONE\n\n");
+}
+
 /******************* FUNCTIONS *********************/
 
 void cloudToOccgrid(const PointCloud2 cloud, const Odometry odom) {
@@ -81,11 +134,11 @@ void updateOrigin(double new_origin_x, double new_origin_y) {
 
     //project the new origin into the grid
     int cell_ox, cell_oy;
-    printf("Old Origin = <%f, %f> ... ", master_observation.master_origin.x, master_observation.master_origin.y);
-    printf("New Origin = <%f, %f>\n", new_origin_x, new_origin_y);
+    //printf("Old Origin = <%f, %f> ... ", master_observation.master_origin.x, master_observation.master_origin.y);
+    //printf("New Origin = <%f, %f>\n", new_origin_x, new_origin_y);
     cell_ox = (int) ((new_origin_x - master_observation.master_origin.x) / master_observation.master_resolution);
     cell_oy = (int) ((new_origin_y - master_observation.master_origin.y) / master_observation.master_resolution);
-    printf("New Cell Origin = <%d, %d>\n", cell_ox, cell_oy);
+    //printf("New Cell Origin = <%d, %d>\n", cell_ox, cell_oy);
 
     // compute the associated world coordinates for the origin cell
     // because we want to keep things grid-aligned
@@ -196,17 +249,17 @@ void updateBounds(PointCloud2 cloud, float *points, double robot_x, double robot
     //Iterate through cloud to register obstacles within costmap
     for(unsigned int i = 0; i < sizeof(cloud.data) / sizeof(cloud.data[0]); i = i + 3) { //TODO: Test if sizeof(points) works correctly
         //Only consider points within height boundaries
-        if (cloud.data[i + 2] <= master_observation.max_obstacle_height_ && cloud.data[i + 2] >= master_observation.min_obstacle_height_) {
+        if (cloud.data[i + 2] + odom.pose.pose.position.z <= master_observation.max_obstacle_height_ && cloud.data[i + 2] + odom.pose.pose.position.z >= master_observation.min_obstacle_height_) {
             double px = (double) cloud.data[i];
             double py = (double) cloud.data[i + 1];
             double pz = (double) cloud.data[i + 2];
 
-            printf("World Coordinates (wx, wy) = (%f, %f)\n", px, py);
+            //printf("World Coordinates (wx, wy) = (%f, %f)\n", px, py);
             //printf("Master Origin Coordinate = < %f, %f > \n", master_observation.master_origin.x, master_observation.master_origin.y);
 
             //printf("Map Coordinates [BEFORE Conversion] -> (%d, %d)\n", master_observation.map_coordinates.x, master_observation.map_coordinates.y);
-            worldToMap(px, py);
-            printf("Map Coordinates (mx, my) = (%d, %d)\n", master_observation.map_coordinates.x, master_observation.map_coordinates.y);
+            worldToMap(px, py, odom);
+            //printf("Map Coordinates (mx, my) = (%d, %d)\n", master_observation.map_coordinates.x, master_observation.map_coordinates.y);
 
             unsigned int index = getIndex(master_observation.map_coordinates.x, master_observation.map_coordinates.y);
             //printf("Index of Obstacle -> %d\n", index);
@@ -228,7 +281,7 @@ void raytraceFreespace(const PointCloud2 cloud, const float* points, double min_
 
     // get the map coordinates of the origin of the sensor
     unsigned int x0, y0;
-    if (!worldToMap(ox, oy))
+    if (!worldToMap(0, 0, odom)) //TODO:
     {
         printf("The origin for the sensor at (%.2f, %.2f) is out of map bounds. So, the costmap cannot raytrace for it.\n", ox, oy);
         return;
@@ -247,7 +300,7 @@ void raytraceFreespace(const PointCloud2 cloud, const float* points, double min_
     for (int i = 0; i < sizeof(cloud.data) / sizeof(cloud.data[0]); i = i + 3) { //TODO: Fix 'invalid application of sizeof' here
         double wx = (double) cloud.data[i];
         double wy = (double) cloud.data[i + 1];
-        printf(">>> World Coordinates of Data Point -> <%f, %f>\n", wx, wy);
+        //printf(">>> World Coordinates of Data Point -> <%f, %f>\n", wx, wy);
 
         // now we also need to make sure that the enpoint we're raytracing
         // to isn't off the costmap and scale if necessary
@@ -282,7 +335,7 @@ void raytraceFreespace(const PointCloud2 cloud, const float* points, double min_
 
         // now that the vector is scaled correctly... we'll get the map coordinates of its endpoint
         unsigned int x1, y1;
-        if (!worldToMap(wx, wy)) continue;
+        if (!worldToMap(wx, wy, odom)) continue;
         x1 = master_observation.map_coordinates.x;
         y1 = master_observation.map_coordinates.y;
 
@@ -296,17 +349,21 @@ void raytraceFreespace(const PointCloud2 cloud, const float* points, double min_
     }
 }
 
-bool worldToMap(double wx, double wy) {
-    if (wx < master_observation.master_origin.x || wy < master_observation.master_origin.y) {
-        //printf("wx, wy = %f, %f; ox, oy = %f, %f\n", wx, wy, master_observation.master_origin.x, master_observation.master_origin.y);
+bool worldToMap(double wx, double wy, const Odometry odom) {
+    //Calculate world coordinates relative to origin (and not robot's odometry)
+    double wx_rel_origin = wx + odom.pose.pose.position.x;
+    double wy_rel_origin = wy + odom.pose.pose.position.y;
+    //printf("World To Map (Relative to Origin) = (%d, %d)\n", (int)((wx_rel_origin - master_observation.master_origin.x) / master_observation.master_resolution), (int)((wy_rel_origin - master_observation.master_origin.y) / master_observation.master_resolution));
+
+    if (wx_rel_origin < master_observation.master_origin.x || wy_rel_origin < master_observation.master_origin.y) {
+        printf("Coordinates Out Of Bounds .... (wx, wy) = (%f, %f); (ox, oy) = (%f, %f)\n", wx, wy, master_observation.master_origin.x, master_observation.master_origin.y);
         return false;
     }
 
-    //printf("(mx, my) -> (%d, %d)\n", (int)((wx - master_observation.master_origin.x) / master_observation.master_resolution), (int)((wy - master_observation.master_origin.y) / master_observation.master_resolution));
-    master_observation.map_coordinates.x = (int)((wx - master_observation.master_origin.x) / master_observation.master_resolution);
-    master_observation.map_coordinates.y = (int)((wy - master_observation.master_origin.y) / master_observation.master_resolution);
+    master_observation.map_coordinates.x = (int)((wx_rel_origin - master_observation.master_origin.x) / master_observation.master_resolution);
+    master_observation.map_coordinates.y = (int)((wy_rel_origin - master_observation.master_origin.y) / master_observation.master_resolution);
 
-    //printf("World To Map (wx, wy) = (%f, %f) -> (mx, my) = (%d, %d)\n", wx, wy);
+    //printf("World To Map (wx, wy) = (%f, %f) -> (mx, my) = (%d, %d)\n\n", wx, wy, master_observation.map_coordinates.x, master_observation.map_coordinates.y);
 
     if (master_observation.map_coordinates.x < master_observation.master_costmap.size_x && master_observation.map_coordinates.y < master_observation.master_costmap.size_y) return true;
 
@@ -319,7 +376,7 @@ unsigned int cellDistance(double world_dist) {
 }
 
 void raytraceLine(unsigned int x0, unsigned int y0, unsigned int x1, unsigned int y1, unsigned int max_length) { //TODO: default parameter for max_length is UNIT_MAX; define UNIT_MAX
-    printf(">>> Raytrace Line from <%d, %d> to <%d, %d> \n", x0, y0, x1, y1);
+    //printf(">>> Raytrace Line from <%d, %d> to <%d, %d> \n", x0, y0, x1, y1);
     int dx = x1 - x0;
     int dy = y1 - y0;
     //printf("dx, dy -> %d ,%d\n", dx, dy);
