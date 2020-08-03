@@ -9,7 +9,14 @@
 #include "occgrid.h"
 
 //Global Variables
-float32 resolution_;
+float resolution_;
+bool rolling_window;
+double min_obstacle_height;
+double max_obstacle_height;
+double raytrae_range;
+double width;
+double height;
+unsigned char default_value;
 
 class LaserScanToPointCloud {
 
@@ -43,15 +50,15 @@ public:
             return;
         }
 
-        //QUESTION: prob declare occgrid outside of function for public access
         //Convert cloud to an occupancy grid
-        occgrid->data = cloudToOccgrid(cloud->data, odom);
+        occgrid->data = cloudToOccgrid(cloud->data, odom, rolling_window, min_obstacle_height, max_obstacle_height, raytrace_range,
+                size_x, size_y, resolution, default_value);
 
         //Initialize Occupancy Grid fields
         occgrid->header = msg->header; //TODO: Verify
 
         ros::Time now();
-        occgrid->info->map_load_time = ros::Tim::now(); //TODO: Incompatible data-types
+        occgrid->info->map_load_time = ros::Tim::now(); //TODO: map_load_time is of 'time' type
         occgrid->info->resolution = resolution_; //TODO: Verify
         occgrid->info->width = cloud->width;
         occgrid->info->height = cloud->height;
@@ -69,6 +76,15 @@ int main (int argc, char** argv) {
     LaserScanToPoinCloud lstopc(n);
 
     n.param("resolution", resolution_, 2.0); //Default value to be 2 meters per cell //TODO: Verify
+    n.param("rolling_window", rolling_window, false);
+    n.param("min_obstacle_height", min_obstacle_height, 0.05); //TODO:
+    n.param("max_obstacle_height", max_obstacle_height, 2.05);
+    n.param("raytrace_range", raytrace_range, 101.0); //TODO:
+    n.param("width", size_x, 100.0);
+    n.param("height", size_y, 100.0);
+    n.param("default_value", default_value, 254);
+
+    n.param
 
     ros::spin();
 }

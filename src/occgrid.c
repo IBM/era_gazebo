@@ -91,12 +91,16 @@ void initCostmap(bool rolling_window, double min_obstacle_height, double max_obs
 
 /******************* FUNCTIONS *********************/
 
-char cloudToOccgrid(const PointCloud2 cloud, const Odometry odom) {
+unsigned char* cloudToOccgrid(const PointCloud2 cloud, const Odometry odom, bool rolling_window, double min_obstacle_height, double max_obstacle_height, double raytrace_range, unsigned int size_x,
+                              unsigned int size_y, double resolution, unsigned char default_value) {
 
     //Retrieve robot's position and orientation from odometry
     double robot_x = odom.pose.pose.position.x;
     double robot_y = odom.pose.pose.position.y;
+    double robot_z = odom.pose.pose.position.z;
     double robot_yaw = odom.twist.twist.angular.z;
+
+    initCostmap(rolling_window, min_obstacle_height, max_obstacle_height, raytrace_range, size_x, size_y, resolution, default_value, robot_x, robot_y, robot_z);
 
     updateMap(cloud, robot_x, robot_y, robot_yaw, odom);
 
@@ -117,13 +121,6 @@ void updateMap(PointCloud2 cloud, double robot_x, double robot_y, double robot_y
     double miny_ = 1e30;
     double maxx_ = -1e30;
     double maxy_ = -1e30;
-
-    /* Delete if prev_* is unused
-    double prev_minx_ = minx_;
-    double prev_miny_ = miny_;
-    double prev_maxx_ = maxx_;
-    double prev_maxy_ = maxy_;
-    */
 
     //printf("Number of elements : %d\n", sizeof(cloud.data) / sizeof(cloud.data[0]));
 
@@ -252,6 +249,14 @@ void updateBounds(PointCloud2 cloud, float *points, double robot_x, double robot
             double py = (double) cloud.data[i + 1];
             double pz = (double) cloud.data[i + 2];
 
+            /*
+            //if window rotates, then inversely rotate points
+            if (rotating_window) {
+                px = px*cos(robot_yaw) - py*sin(robot_yaw);
+                py = px*sin(robot_yaw) + py*cos(robot_yaw);
+            }
+            */
+
             //printf("World Coordinates (wx, wy) = (%f, %f)\n", px, py);
             //printf("Master Origin Coordinate = < %f, %f > \n", master_observation.master_origin.x, master_observation.master_origin.y);
 
@@ -299,6 +304,15 @@ void raytraceFreespace(const PointCloud2 cloud, const float* points, double min_
         double wx = (double) cloud.data[i];
         double wy = (double) cloud.data[i + 1];
         //printf(">>> World Coordinates of Data Point -> <%f, %f>\n", wx, wy);
+
+        /*
+        //if window rotates, then inversely rotate points
+        double robot_yaw = odom.twist.twist.angular.z;
+        if (rotating_window) {
+            wx = wx*cos(robot_yaw) - wy*sin(robot_yaw);
+            wy = wx*sin(robot_yaw) + wy*cos(robot_yaw);
+        }
+        */
 
         // now we also need to make sure that the enpoint we're raytracing
         // to isn't off the costmap and scale if necessary

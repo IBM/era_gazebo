@@ -152,11 +152,12 @@ typedef struct Observation {
 //Define global variables
 Observation master_observation;
 char data[199992];
-//PointCloud2 cloud;
+//bool rotating_window;
 
 //Define functions
 
-char cloudToOccgrid(const PointCloud2 cloud, const Odometry odom);
+unsigned char* cloudToOccgrid(const PointCloud2 cloud, const Odometry odom, bool rolling_window, double min_obstacle_height, double max_obstacle_height, double raytrace_range, unsigned int size_x,
+                              unsigned int size_y, double resolution, unsigned char default_value);
 
 void updateMap(PointCloud2 cloud, double robot_x, double robot_y, double robot_yaw, const Odometry odom);
 
