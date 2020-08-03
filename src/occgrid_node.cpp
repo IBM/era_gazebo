@@ -47,7 +47,7 @@ int main (int argc, char** argv) {
     ros::NodeHandle n;
 
     ros::Subscriber cloud_sub = n.subscribe("/carla/hero1/lidar/lidar1/point_cloud", 10, cloudCallback);
-    ros::Subscriber odometry_sub = b.subscribe("carla/hero1/odometry", 10, odomCallback);
+    ros::Subscriber odometry_sub = n.subscribe("carla/hero1/odometry", 10, odomCallback);
     ros::Publisher occ_grid_pub = n.advertise<nav_msgs::OccupancyGrid>("local_map", 1000);
 
     n.param("resolution", resolution_, 2.0); //Default value to be 2 meters per cell
