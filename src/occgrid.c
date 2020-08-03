@@ -91,7 +91,7 @@ void initCostmap(bool rolling_window, double min_obstacle_height, double max_obs
 
 /******************* FUNCTIONS *********************/
 
-void cloudToOccgrid(const PointCloud2 cloud, const Odometry odom) {
+char cloudToOccgrid(const PointCloud2 cloud, const Odometry odom) {
 
     //Retrieve robot's position and orientation from odometry
     double robot_x = odom.pose.pose.position.x;
@@ -99,6 +99,8 @@ void cloudToOccgrid(const PointCloud2 cloud, const Odometry odom) {
     double robot_yaw = odom.twist.twist.angular.z;
 
     updateMap(cloud, robot_x, robot_y, robot_yaw, odom);
+
+    return master_observation.master_costmap.costmap_;
 }
 
 void updateMap(PointCloud2 cloud, double robot_x, double robot_y, double robot_yaw, const Odometry odom) {
@@ -232,10 +234,6 @@ void copyMapRegion(unsigned char* source_map, unsigned int sm_lower_left_x, unsi
     for (int i = 0; i < cell_size_x * cell_size_y; i++) {
         master_observation.master_costmap.costmap_[i] = local_costmap[i];
     }
-}
-
-void resetMaps() {
-    memset(master_observation.master_costmap.costmap_, master_observation.master_costmap.default_value, master_observation.master_costmap.size_x * master_observation.master_costmap.size_y * (sizeof(unsigned char)));
 }
 
 void updateBounds(PointCloud2 cloud, float *points, double robot_x, double robot_y,

@@ -156,7 +156,7 @@ char data[199992];
 
 //Define functions
 
-void cloudToOccgrid(const PointCloud2 cloud, const Odometry odom);
+char cloudToOccgrid(const PointCloud2 cloud, const Odometry odom);
 
 void updateMap(PointCloud2 cloud, double robot_x, double robot_y, double robot_yaw, const Odometry odom);
 
@@ -166,8 +166,6 @@ void copyMapRegion(unsigned char* source_map, unsigned int sm_lower_left_x, unsi
                        unsigned int sm_size_x, unsigned int dm_lower_left_x,
                        unsigned int dm_lower_left_y, unsigned int dm_size_x, unsigned int region_size_x,
                        unsigned int region_size_y);
-
-void resetMaps(void);
 
 void updateBounds(PointCloud2 cloud, float* points, double robot_x, double robot_y, double robot_yaw, double min_x, double min_y, double max_x, double max_y, const Odometry odom);
 
