@@ -27,7 +27,7 @@
 typedef struct Header {
     unsigned int seq;
     time_t stamp;
-    char* frame_id[];
+    char* frame_id;
 } Header;
 
 typedef struct geometry_msgs_Point {
@@ -55,7 +55,7 @@ typedef struct geometry_msgs_Pose {
 } Pose;
 
 typedef struct geometry_msgs_Twist {
-    Vector3;
+    Vector3 linear;
     Vector3 angular;
 } Twist;
 
