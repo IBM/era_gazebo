@@ -1,11 +1,7 @@
 #include <ros/ros.h>
-#include <tf/transform_listener.h>
+#include <nav_msgs/Odometry.h>
 #include <sensor_msgs/PointCloud.h>
-#include <sensor_msgs/LaserScan.h>
 #include <nav_msgs/OccupancyGrid.h>
-#include <tf/message_filter.h>
-#include <message_filters/subscriber.h>
-#include <laser_geometry/laser_geometry.h>
 #include "occgrid.h"
 
 //Global Variables
@@ -18,73 +14,50 @@ double width;
 double height;
 unsigned char default_value;
 
-class LaserScanToPointCloud {
+nav_msgs::Odometry* odom;
 
-public:
+void cloudCallback (const sensor_msgs::PointCloud::ConstPtr& cloud) {
 
-    ros::NodeHandle n_;
-    laser_geometry::LaserProjection projector_;
-    tf::TransformListener listener_;
-    message_filters::Subscribe<sensor_msgs::LaserScan> laser_sub_;
-    tf::MessageFilter<sensor_msgs::LaserScan> laser_notifier_;
-    ros::Publisher occ_pub_;
-    nav_msgs::OccupancyGrd occgrid;
+    nav_msgs::OccupancyGrid occgrid;
 
-    LaserScanTointCloud(ros::NodeHandle n) :
-        n_(n),
-        laser_sub_(n_, "scan", 10),
-        laser_notifier_(laser_sub_, listener_, /*target_frame*/ , 10) { //TODO: target_frame = scan_in->header.frame_id
+    //Convert cloud to an occupancy grid
+    occgrid->data = cloudToOccgrid(cloud->data, odom, rolling_window, min_obstacle_height, max_obstacle_height, raytrace_range, size_x, size_y, resolution, default_value);
 
-        laser_notifier_.registerCallback(boost::bind(&LaserScanToPointCloud::scanCallback, this, _1));
-        laser_ntifier_.setTolerance(ros::Duration(0.01));
-        occ_pub_ = n.advertise<nav_msgs::OccupancyGrid>("/local_map", 1);
-    }
+    //Initialize Occupancy Grid fields
+    occgrid->header = msg->header;
 
-    void scanCallback (const sensor_msgs::LaserScan::ConstPtr& scan_in) {
-        sensor_msgs::PointCloud cloud;
-        try {
-            projector_.transformLaserScanToPointCloud(scan_in->header.frame_id, *scan_in, cloud, listener_);
-        }
-        catch {
-            std::cout <<e.what();
-            return;
-        }
+    ros::Time now();
+    occgrid->info->map_load_time = cloud->header->stamp; //TODO: map_load_time is of 'time' type
+    occgrid->info->resolution = resolution_;
+    occgrid->info->width = cloud->width;
+    occgrid->info->height = cloud->height;
+    occgrid->info->origin = odom->pose->pose;
 
-        //Convert cloud to an occupancy grid
-        occgrid->data = cloudToOccgrid(cloud->data, odom, rolling_window, min_obstacle_height, max_obstacle_height, raytrace_range,
-                size_x, size_y, resolution, default_value);
+    //Publish occupancy grid
+    occ_grid_pub_.publish(occgrid);
+}
 
-        //Initialize Occupancy Grid fields
-        occgrid->header = msg->header; //TODO: Verify
-
-        ros::Time now();
-        occgrid->info->map_load_time = ros::Tim::now(); //TODO: map_load_time is of 'time' type
-        occgrid->info->resolution = resolution_; //TODO: Verify
-        occgrid->info->width = cloud->width;
-        occgrid->info->height = cloud->height;
-        occgrid->info->origin = odom->pose->pose;
-
-        occ_pub_.publish(occgrid);
-    }
-};
+void odomCallback (const nav_msgs::Odometry::ConstPtr& odometry) {
+    odom = odometry;
+}
 
 int main (int argc, char** argv) {
     ros::init(argc, argv, "occmap_node");
 
     ros::NodeHandle n;
 
-    LaserScanToPoinCloud lstopc(n);
+    ros::Subscriber cloud_sub = n.subscribe("/carla/hero1/lidar/lidar1/point_cloud", 10, cloudCallback);
+    ros::Subscriber odometry_sub = b.subscribe("carla/hero1/odometry", 10, odomCallback);
+    ros::Publisher occ_grid_pub = n.advertise<nav_msgs::OccupancyGrid>("local_map", 1000);
 
-    n.param("resolution", resolution_, 2.0); //Default value to be 2 meters per cell //TODO: Verify
+    n.param("resolution", resolution_, 2.0); //Default value to be 2 meters per cell
     n.param("rolling_window", rolling_window, false);
-    n.param("min_obstacle_height", min_obstacle_height, 0.05); //TODO:
+    n.param("min_obstacle_height", min_obstacle_height, 0.05);
     n.param("max_obstacle_height", max_obstacle_height, 2.05);
-    n.param("raytrace_range", raytrace_range, 101.0); //TODO:
+    n.param("raytrace_range", raytrace_range, 101.0);
     n.param("width", size_x, 100.0);
     n.param("height", size_y, 100.0);
     n.param("default_value", default_value, 254);
-
-    n.param
 
     ros::spin();
 }
