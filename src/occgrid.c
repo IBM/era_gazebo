@@ -91,7 +91,7 @@ void initCostmap(bool rolling_window, double min_obstacle_height, double max_obs
 
 /******************* FUNCTIONS *********************/
 
-unsigned char* cloudToOccgrid(const PointCloud2 cloud, const Odometry odom, bool rolling_window, double min_obstacle_height, double max_obstacle_height, double raytrace_range, unsigned int size_x,
+unsigned char* cloudToOccgrid(const PointCloud2* cloud, const Odometry odom, bool rolling_window, double min_obstacle_height, double max_obstacle_height, double raytrace_range, unsigned int size_x,
                               unsigned int size_y, double resolution, unsigned char default_value) {
 
     //Retrieve robot's position and orientation from odometry
@@ -107,7 +107,7 @@ unsigned char* cloudToOccgrid(const PointCloud2 cloud, const Odometry odom, bool
     return master_observation.master_costmap.costmap_;
 }
 
-void updateMap(PointCloud2 cloud, double robot_x, double robot_y, double robot_yaw, const Odometry odom) {
+void updateMap(PointCloud2* cloud, double robot_x, double robot_y, double robot_yaw, const Odometry odom) {
     if (master_observation.rolling_window_) {
         printf("\nUpdating Map .... \n");
         printf("   robot_x = %f, robot_y = %f, robot_yaw = %f \n", robot_x, robot_y, robot_yaw);
@@ -124,7 +124,7 @@ void updateMap(PointCloud2 cloud, double robot_x, double robot_y, double robot_y
 
     //printf("Number of elements : %d\n", sizeof(cloud.data) / sizeof(cloud.data[0]));
 
-    updateBounds(cloud, cloud.data, robot_x, robot_y, robot_yaw, minx_, miny_, maxx_, maxy_, odom);
+    updateBounds(cloud, cloud->data, robot_x, robot_y, robot_yaw, minx_, miny_, maxx_, maxy_, odom);
 }
 
 void updateOrigin(double new_origin_x, double new_origin_y) {
@@ -233,21 +233,21 @@ void copyMapRegion(unsigned char* source_map, unsigned int sm_lower_left_x, unsi
     }
 }
 
-void updateBounds(PointCloud2 cloud, float *points, double robot_x, double robot_y,
+void updateBounds(PointCloud2* cloud, float *points, double robot_x, double robot_y,
                   double robot_yaw, double min_x, double min_y, double max_x, double max_y, const Odometry odom) {
 
     //raytrace free space
-    raytraceFreespace(cloud, cloud.data, min_x, min_y, max_x, max_y, odom); //TODO: Reconfigure for 'cloud' parameter
+    raytraceFreespace(cloud, cloud->data, min_x, min_y, max_x, max_y, odom); //TODO: Reconfigure for 'cloud' parameter
 
     //printf("Number of elements : %d\n", sizeof(cloud.data) / sizeof(cloud.data[0]));
 
     //Iterate through cloud to register obstacles within costmap
-    for(unsigned int i = 0; i < sizeof(cloud.data) / sizeof(cloud.data[0]); i = i + 3) { //TODO: Test if sizeof(points) works correctly
+    for(unsigned int i = 0; i < sizeof(cloud->data) / sizeof(cloud->data[0]); i = i + 3) { //TODO: Test if sizeof(points) works correctly
         //Only consider points within height boundaries
-        if (cloud.data[i + 2] + odom.pose.pose.position.z <= master_observation.max_obstacle_height_ && cloud.data[i + 2] + odom.pose.pose.position.z >= master_observation.min_obstacle_height_) {
-            double px = (double) cloud.data[i];
-            double py = (double) cloud.data[i + 1];
-            double pz = (double) cloud.data[i + 2];
+        if (cloud->data[i + 2] + odom.pose.pose.position.z <= master_observation.max_obstacle_height_ && cloud->data[i + 2] + odom.pose.pose.position.z >= master_observation.min_obstacle_height_) {
+            double px = (double) cloud->data[i];
+            double py = (double) cloud->data[i + 1];
+            double pz = (double) cloud->data[i + 2];
 
             /*
             //if window rotates, then inversely rotate points
@@ -276,7 +276,7 @@ void updateBounds(PointCloud2 cloud, float *points, double robot_x, double robot
    (1) Finding the size of the array for iteration
    (2) Difference between origin_x_ and observation.origin_x
 */
-void raytraceFreespace(const PointCloud2 cloud, const float* points, double min_x, double min_y, double max_x, double max_y, const Odometry odom) {
+void raytraceFreespace(const PointCloud2* cloud, const float* points, double min_x, double min_y, double max_x, double max_y, const Odometry odom) {
     //Retrieve observation origin (i.e. origin of the pointcloud)
     double ox = odom.pose.pose.position.x;
     double oy = odom.pose.pose.position.y;
@@ -300,9 +300,9 @@ void raytraceFreespace(const PointCloud2 cloud, const float* points, double min_
 
     touch(ox, oy, min_x, min_y, max_x, max_y);
 
-    for (int i = 0; i < sizeof(cloud.data) / sizeof(cloud.data[0]); i = i + 3) { //TODO: Fix 'invalid application of sizeof' here
-        double wx = (double) cloud.data[i];
-        double wy = (double) cloud.data[i + 1];
+    for (int i = 0; i < sizeof(cloud->data) / sizeof(cloud->data[0]); i = i + 3) { //TODO: Fix 'invalid application of sizeof' here
+        double wx = (double) cloud->data[i];
+        double wy = (double) cloud->data[i + 1];
         //printf(">>> World Coordinates of Data Point -> <%f, %f>\n", wx, wy);
 
         /*
