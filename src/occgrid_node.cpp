@@ -28,25 +28,30 @@ void cloudCallback (const sensor_msgs::PointCloud2::ConstPtr& cloud) {
 
     unsigned char * cloud_data = (unsigned char *)cloud->data.data();
 
-    //unsigned char * data =  cloudToOccgrid(cloud_data, odom, rolling_window, min_obstacle_height, max_obstacle_height, raytrace_range, size_x, size_y, resolution, default_value);
-    // AKIN do we know the size of the data? The following line is how we convert. We need the size
-    // occgrid.data = std::vector<unsigned char>(data, data_size);
+    unsigned char * data =  cloudToOccgrid(cloud_data, odom.pose.pose.position.x, odom.pose.pose.position.y, odom.pose.pose.position.z, odom.twist.twist.angular.z, rolling_window, min_obstacle_height, max_obstacle_height, raytrace_range, size_x, size_y, resolution, default_value);
+    unsigned int data_size = 199992; //char array size is a max of 199992
+    occgrid.data = std::vector<signed char>(data, data + data_size);
 
     //Initialize Occupancy Grid fields
     occgrid.header = cloud->header;
 
-    occgrid.info.map_load_time = cloud->header.stamp; //TODO: map_load_time is of 'time' type
+    occgrid.info.map_load_time = cloud->header.stamp;
     occgrid.info.resolution = resolution;
     occgrid.info.width = cloud->width;
     occgrid.info.height = cloud->height;
-   // AKIN  occgrid.info.origin = odom->pose; these are not of the same type
+    occgrid.info.origin.position.x = odom.pose.pose.position.x;
+    occgrid.info.origin.position.y = odom.pose.pose.position.y;
+    occgrid.info.origin.position.z = odom.pose.pose.position.z;
 
     //Publish occupancy grid
     occ_grid_pub.publish(occgrid);
 }
 
 void odomCallback (const nav_msgs::Odometry::ConstPtr& odometry) {
-   //AKIN  odom = odometry; this won't work since they are not of the same time. You need to assign the contents by hand
+   odom.pose.pose.position.x = odometry->pose.pose.position.x;
+   odom.pose.pose.position.y = odometry->pose.pose.position.y;
+   odom.pose.pose.position.z = odometry->pose.pose.position.z;
+   odom.twist.twist.angular.z = odometry->twist.twist.angular.z;
 }
 
 int main (int argc, char** argv) {
@@ -70,3 +75,4 @@ int main (int argc, char** argv) {
 
     ros::spin();
 }
+
