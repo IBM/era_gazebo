@@ -97,7 +97,7 @@ typedef struct sensor_msgs_PointCloud2 {
     unsigned int row_step;
     bool is_dense;
     Pointfield* fields[3]; //TODO: Flexible array has to be at end, fix array size
-    float data[14658]; //NOTE: Supposed to be int8 but does not exist in C
+    float data[15000]; //NOTE: Supposed to be int8 but does not exist in C
 } PointCloud2;
 
 typedef struct MapMetaData {
@@ -156,10 +156,10 @@ char data[199992];
 
 //Define functions
 
-unsigned char* cloudToOccgrid(const PointCloud2* cloud, const Odometry odom, bool rolling_window, double min_obstacle_height, double max_obstacle_height, double raytrace_range, unsigned int size_x,
+unsigned char* cloudToOccgrid(float* data, unsigned int data_size, double robot_x, double robot_y, double robot_z, double robot_yaw, bool rolling_window, double min_obstacle_height, double max_obstacle_height, double raytrace_range, unsigned int size_x,
                               unsigned int size_y, double resolution, unsigned char default_value);
 
-void updateMap(PointCloud2* cloud, double robot_x, double robot_y, double robot_yaw, const Odometry odom);
+void updateMap(float* data, unsigned int data_size, double robot_x, double robot_y, double robot_z, double robot_yaw);
 
 void updateOrigin(double new_origin_x, double new_origin_y);
 
@@ -168,11 +168,11 @@ void copyMapRegion(unsigned char* source_map, unsigned int sm_lower_left_x, unsi
                        unsigned int dm_lower_left_y, unsigned int dm_size_x, unsigned int region_size_x,
                        unsigned int region_size_y);
 
-void updateBounds(PointCloud2* cloud, float* points, double robot_x, double robot_y, double robot_yaw, double min_x, double min_y, double max_x, double max_y, const Odometry odom);
+void updateBounds(float* data, unsigned int data_size, double robot_x, double robot_y, double robot_z, double robot_yaw, double min_x, double min_y, double max_x, double max_y);
 
-void raytraceFreespace(const PointCloud2* cloud, const float* points, double min_x, double min_y, double max_x, double max_y, const Odometry odom);
+void raytraceFreespace(float* data, unsigned int data_size, double min_x, double min_y, double max_x, double max_y, double robot_x, double robot_y, double robot_z, double robot_yaw);
 
-bool worldToMap(double wx, double wy, const Odometry odom);
+bool worldToMap(double wx, double wy, double robot_x, double robot_y);
 
 unsigned int cellDistance(double world_dist);
 
