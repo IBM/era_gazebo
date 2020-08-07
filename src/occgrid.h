@@ -1,3 +1,8 @@
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
@@ -9,9 +14,9 @@
 #define OCCGRID_H_
 
 //Define Costmap values
-#define NO_INFORMATION 254
+#define NO_INFORMATION 50
 #define FREE_SPACE 0
-#define LETHAL_OBSTACLE 255
+#define LETHAL_OBSTACLE 100
 
 //Define datatype values
 #define INT8    1;
@@ -152,7 +157,7 @@ typedef struct Observation {
 //Define global variables
 Observation master_observation;
 char data[199992];
-//bool rotating_window;
+bool rotating_window;
 
 //Define functions
 
@@ -198,3 +203,7 @@ void initCostmap(bool rolling_window, double min_obstacle_height, double max_obs
                  unsigned int size_y, double resolution, unsigned char default_value, double robot_x, double robot_y, double robot_z);
 
 #endif // OCCGRID_H_
+
+#ifdef __cplusplus
+}
+#endif

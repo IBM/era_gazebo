@@ -96,18 +96,19 @@ unsigned char* cloudToOccgrid(float* data, unsigned int data_size, double robot_
 
     initCostmap(rolling_window, min_obstacle_height, max_obstacle_height, raytrace_range, size_x, size_y, resolution, default_value, robot_x, robot_y, robot_z);
 
-    printf("(1) Number of elements : %d ... ", data_size);
-    printf("First Coordinate = <%f, %f>\n", *data, *(data+1));
+    //printf("(1) Number of elements : %d ... ", data_size);
+    //printf("First Coordinate = <%f, %f>\n", *data, *(data+1));
     updateMap(data, data_size, robot_x, robot_y, robot_z, robot_yaw);
 
+    //printMap();
     return master_observation.master_costmap.costmap_;
 }
 
 void updateMap(float* data, unsigned int data_size, double robot_x, double robot_y, double robot_z, double robot_yaw) {
     if (master_observation.rolling_window_) {
-        printf("\nUpdating Map .... \n");
-        printf("   robot_x = %f, robot_y = %f, robot_yaw = %f \n", robot_x, robot_y, robot_yaw);
-        printf("   Master Origin = (%f, %f)\n", master_observation.master_origin.x, master_observation.master_origin.y);
+        //printf("\nUpdating Map .... \n");
+        //printf("   robot_x = %f, robot_y = %f, robot_yaw = %f \n", robot_x, robot_y, robot_yaw);
+        //printf("   Master Origin = (%f, %f)\n", master_observation.master_origin.x, master_observation.master_origin.y);
         double new_origin_x = robot_x - master_observation.master_costmap.size_x / 2;
         double new_origin_y = robot_y - master_observation.master_costmap.size_y / 2;
         updateOrigin(new_origin_x, new_origin_y);
@@ -118,14 +119,15 @@ void updateMap(float* data, unsigned int data_size, double robot_x, double robot
     double maxx_ = -1e30;
     double maxy_ = -1e30;
 
-    printf("(1) Number of elements : %d ... ", data_size);
-    printf("First Coordinate = <%f, %f>\n", *data, *(data+1));
+    //printf("(1) Number of elements : %d ... ", data_size);
+    //printf("First Coordinate = <%f, %f>\n", *data, *(data+1));
+    //rotating_window = true; //Comment out if not rolling window
 
     updateBounds(data, data_size, robot_x, robot_y, robot_z, robot_yaw, minx_, miny_, maxx_, maxy_);
 }
 
 void updateOrigin(double new_origin_x, double new_origin_y) {
-    printf("\nUpdating Map Origin\n");
+    //printf("\nUpdating Map Origin\n");
     //printf("New Origin -> <%f, %f>\n ", new_origin_x, new_origin_y);
 
     //project the new origin into the grid
@@ -232,8 +234,8 @@ void copyMapRegion(unsigned char* source_map, unsigned int sm_lower_left_x, unsi
 
 void updateBounds(float* data, unsigned int data_size, double robot_x, double robot_y, double robot_z,
                   double robot_yaw, double min_x, double min_y, double max_x, double max_y) {
-    printf("(1) Number of elements : %d ... ", data_size);
-    printf("First Coordinate = <%f, %f>\n", *data, *(data+1));
+    //printf("(1) Number of elements : %d ... ", data_size);
+    //printf("First Coordinate = <%f, %f>\n", *data, *(data+1));
 
     //raytrace free space
     raytraceFreespace(data, data_size, min_x, min_y, max_x, max_y, robot_x, robot_y, robot_z, robot_yaw); //TODO: Reconfigure for 'cloud' parameter
@@ -248,13 +250,11 @@ void updateBounds(float* data, unsigned int data_size, double robot_x, double ro
             double py = (double) *(data + i + 1);
             double pz = (double) *(data + i + 2);
 
-            /*
             //if window rotates, then inversely rotate points
             if (rotating_window) {
                 px = px*cos(robot_yaw) - py*sin(robot_yaw);
                 py = px*sin(robot_yaw) + py*cos(robot_yaw);
             }
-            */
 
             //printf("World Coordinates (wx, wy) = (%f, %f)\n", px, py);
             //printf("Master Origin Coordinate = < %f, %f > \n", master_observation.master_origin.x, master_observation.master_origin.y);
@@ -276,13 +276,13 @@ void updateBounds(float* data, unsigned int data_size, double robot_x, double ro
    (2) Difference between origin_x_ and observation.origin_x
 */
 void raytraceFreespace(float* data, unsigned int data_size, double min_x, double min_y, double max_x, double max_y, double robot_x, double robot_y, double robot_z, double robot_yaw) {
-    printf("(1) Number of elements : %d ... ", data_size);
-    printf("First Coordinate = <%f, %f>\n", *data, *(data+1));
+    //printf("(1) Number of elements : %d ... ", data_size);
+    //printf("First Coordinate = <%f, %f>\n", *data, *(data+1));
 
     //Retrieve observation origin (i.e. origin of the pointcloud)
     double ox = robot_x;
     double oy = robot_y;
-    printf(">>> Odometry -> <%f, %f>\n", ox, oy);
+    //printf(">>> Odometry -> <%f, %f>\n", ox, oy);
 
     // get the map coordinates of the origin of the sensor
     unsigned int x0, y0;
@@ -293,27 +293,25 @@ void raytraceFreespace(float* data, unsigned int data_size, double min_x, double
     }
     x0 = master_observation.map_coordinates.x;
     y0 = master_observation.map_coordinates.y;
-    printf(">>> Map Coordinates of the Sensor Origin -> <%d, %d>\n", x0, y0);
+    //printf(">>> Map Coordinates of the Sensor Origin -> <%d, %d>\n", x0, y0);
 
     // we can pre-compute the endpoints of the map outside of the inner loop... we'll need these later
     double map_end_x = master_observation.master_origin.x + master_observation.master_costmap.size_x * master_observation.master_resolution;
     double map_end_y = master_observation.master_origin.y + master_observation.master_costmap.size_y * master_observation.master_resolution;
-    printf(">>> End of Map Coordinates -> <%f, %f>\n", map_end_x, map_end_y);
+    //printf(">>> End of Map Coordinates -> <%f, %f>\n", map_end_x, map_end_y);
 
     touch(ox, oy, min_x, min_y, max_x, max_y);
 
     for (int i = 0; i < data_size; i = i + 3) {
         double wx = (double) *(data + i);
         double wy = (double) *(data + i + 1);
-        printf(">>> World Coordinates of Data Point -> <%f, %f>\n", wx, wy);
+        //printf(">>> World Coordinates of Data Point -> <%f, %f>\n", wx, wy);
 
-        /*
         //if window rotates, then inversely rotate points
         if (rotating_window) {
             wx = wx*cos(robot_yaw) - wy*sin(robot_yaw);
             wy = wx*sin(robot_yaw) + wy*cos(robot_yaw);
         }
-        */
 
         // now we also need to make sure that the enpoint we're raytracing
         // to isn't off the costmap and scale if necessary
