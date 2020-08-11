@@ -1,9 +1,9 @@
 #include <ros/ros.h>
 #include <ros/console.h>
 #include <tf2_ros/transform_listener.h>
-#include <tf2/convert.h>
-#include <tf2/utils.h>
-#include <tf2_geometry_msgs/tf2_geometry_msgs.h>
+#include <tf2_ros/buffer.h>
+#include <tf2/transform_datatypes.h>
+#include <tf2_sensor_msgs/tf2_sensor_msgs.h>
 #include <nav_msgs/Odometry.h>
 #include <sensor_msgs/PointCloud2.h>
 #include <nav_msgs/OccupancyGrid.h>
@@ -28,6 +28,9 @@ Odometry odom;
 
 ros::Publisher occ_grid_pub;
 
+tf2_ros::Buffer buffer;
+tf2_ros::TransformListener *tf;
+
 double rw, rx, ry, rz; //Components of quarternion that represents the orientation of robot
 double prev_angle;
 
@@ -38,10 +41,17 @@ void cloudCallback (const sensor_msgs::PointCloud2::ConstPtr& cloud) {
 
     //Transform cloud's frame to global frame
     sensor_msgs::PointCloud2 global_cloud;
-    tf2_ros::Buffer buffer(ros::Duration(10));
-    tf2_ros::TransformListener tf(buffer);
-    buffer.transform(cloud, global_cloud, global_frame);
+    
 
+    geometry_msgs::TransformStamped transformStamped;
+    try {
+        transformStamped = buffer.lookupTransform(cloud->header.frame_id, global_frame, ros::Time(0));
+        tf2::doTransform(*cloud, global_cloud, transformStamped);
+    }
+    catch (tf2::TransformException &ex) {
+        ROS_WARN("%s", ex.what());
+        return;
+    }
     //Convert cloud to an occupancy grid
     float* cloud_data = (float*) cloud->data.data();
 
@@ -114,6 +124,9 @@ int main (int argc, char** argv) {
     ros::param::param<double>("width", size_x, 100.0);
     ros::param::param<double>("height", size_y, 100.0);
     ros::param::param<int>("default_value", default_value, 254);
+
+    tf = new tf2_ros::TransformListener(buffer);
+
 
     ros::spin();
 }
