@@ -91,6 +91,82 @@ void initCostmap(bool rolling_window, double min_obstacle_height, double max_obs
 
 /******************* FUNCTIONS *********************/
 
+unsigned char* combineGrids(unsigned char* grid1, unsigned char* grid2, double robot_x1, double robot_y1,
+                            double robot_x2, double robot_y2, unsigned int cell_size_x, unsigned int cell_size_y, double resolution, char def_val){
+    //TODO: Input parameters needed: size of map, resolution, default value
+    //TODO: Change size_x to cell_size_x
+    //grid1 is previous map, grid2 is current map
+
+    //Calculate the new origin of the map
+    double new_origin_x = robot_x2 - (cell_size_x - 1) / 2.0;
+    double new_origin_y = robot_y2 - (cell_size_y - 1) / 2.0;
+
+    //Calculate the old origin of the map
+    double origin_x = robot_x1 - (cell_size_x - 1) / 2;
+    double origin_y = robot_y1 - (cell_size_y - 1) / 2;
+
+    //Calculate the number of cells between the old and new origin
+    unsigned int cell_ox = ((new_origin_x - origin_x) / resolution);
+    unsigned int cell_oy = ((new_origin_y - origin_y) / resolution);
+
+    //Determine the lower left cells of the origin
+    unsigned int g1_lower_left_x = min(max(cell_ox, 0), cell_size_x);
+    unsigned int g1_lower_left_y = min(max(cell_oy, 0), cell_size_y);
+    unsigned int g2_lower_left_x = g1_lower_left_x - cell_ox;
+    unsigned int g2_lower_left_y = g1_lower_left_y - cell_oy;
+
+    //Calculate the indexes of which to start 'copying' over
+    unsigned int g1_index = (g1_lower_left_y * cell_size_x + g1_lower_left_x);
+    unsigned int g2_index = (g2_lower_left_y * cell_size_x + g2_lower_left_x);
+
+    //The size of the overlapping region
+    unsigned int region_size_x = cell_size_x - cell_ox;
+    unsigned int region_size_y = cell_size_y - cell_oy;
+
+    printf("Lower Left of Old Map = (%d, %d) \n", g1_lower_left_x, g1_lower_left_y);
+    printf("Lower Left of New Map = (%d, %d) \n", g2_lower_left_x, g2_lower_left_y);
+    printf("Index of Old Map, Index of New Map = %d, %d \n", g1_index, g2_index);
+    printf("Dimensions of Overlapping Region = (%d, %d) \n", region_size_x, region_size_y);
+
+    printf("OLD map: \n");
+    for (int i = 0; i < 10; i++) {
+        for (int j = 0; j < 10; j++) {
+            int index = i * 10 + j;
+            printf("%4d", *(grid1 + index));
+        }
+        printf("\n\n");
+    }
+
+    printf("NEW map: \n");
+    for (int i = 0; i < 10; i++) {
+        for (int j = 0; j < 10; j++) {
+            int index = i * 10 + j;
+            printf("%4d", *(grid2 + index));
+        }
+        printf("\n\n");
+    }
+
+    //Iterate through grids and assign corresponding max value
+    unsigned int total_count = 0;
+    unsigned int count = 0;
+    for (int i = 0; i < cell_size_x; i++) {
+        for (int j = 0; j < cell_size_y; j++) {
+            if (g1_index == cell_size_x * cell_size_y) return grid2;
+            if (count == region_size_x) {
+                g1_index = g1_index + cell_ox;
+                g2_index = g2_index + cell_ox;
+                count = 0;
+            }
+            grid2[g2_index] = max(grid2[g2_index], grid1[g1_index]);
+            printf("%d, %d \n", g1_index, g2_index);
+            g1_index++;
+            g2_index++;
+            count++;
+            total_count++;
+        }
+    }
+}
+
 unsigned char* cloudToOccgrid(float* data, unsigned int data_size, double robot_x, double robot_y, double robot_z, double robot_yaw, bool rolling_window, double min_obstacle_height, double max_obstacle_height, double raytrace_range, unsigned int size_x,
                               unsigned int size_y, double resolution, unsigned char default_value) {
 
