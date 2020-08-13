@@ -1,8 +1,3 @@
-#ifdef __cplusplus
-extern "C"
-{
-#endif
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
@@ -14,9 +9,9 @@ extern "C"
 #define OCCGRID_H_
 
 //Define Costmap values
-#define NO_INFORMATION 50
+#define NO_INFORMATION 254
 #define FREE_SPACE 0
-#define LETHAL_OBSTACLE 100
+#define LETHAL_OBSTACLE 255
 
 //Define datatype values
 #define INT8    1;
@@ -160,8 +155,11 @@ char data[199992];
 bool rotating_window;
 
 //Define functions
+unsigned char* combineGrids(unsigned char* grid1, unsigned char* grid2, double robot_x1, double robot_y1,
+                            double robot_x2, double robot_y2, unsigned int cell_size_x, unsigned int cell_size_y, double resolution, char def_val);
 
-unsigned char* cloudToOccgrid(float* data, unsigned int data_size, double robot_x, double robot_y, double robot_z, double robot_yaw, bool rolling_window, double min_obstacle_height, double max_obstacle_height, double raytrace_range, unsigned int size_x,
+unsigned char* cloudToOccgrid(float* data, unsigned int data_size, double robot_x, double robot_y, double robot_z, double robot_yaw, bool rolling_window,
+                              double min_obstacle_height, double max_obstacle_height, double raytrace_range, unsigned int size_x,
                               unsigned int size_y, double resolution, unsigned char default_value);
 
 void updateMap(float* data, unsigned int data_size, double robot_x, double robot_y, double robot_z, double robot_yaw);
@@ -203,7 +201,3 @@ void initCostmap(bool rolling_window, double min_obstacle_height, double max_obs
                  unsigned int size_y, double resolution, unsigned char default_value, double robot_x, double robot_y, double robot_z);
 
 #endif // OCCGRID_H_
-
-#ifdef __cplusplus
-}
-#endif
