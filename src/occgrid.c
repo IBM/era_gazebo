@@ -245,7 +245,7 @@ void updateBounds(float* data, unsigned int data_size, double robot_x, double ro
     //Iterate through cloud to register obstacles within costmap
     for(unsigned int i = 0; i < data_size; i = i + 3) { //TODO: Test if sizeof(points) works correctly
         //Only consider points within height boundaries
-        if (data[i + 2] + robot_z <= master_observation.max_obstacle_height_ && data[i + 2] + robot_z >= master_observation.min_obstacle_height_) {
+        if (data[i + 2] <= master_observation.max_obstacle_height_ && data[i + 2] >= master_observation.min_obstacle_height_) {
             double px = (double) *(data + i);
             double py = (double) *(data + i + 1);
             double pz = (double) *(data + i + 2);
