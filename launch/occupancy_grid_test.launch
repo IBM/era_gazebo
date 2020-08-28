@@ -1,0 +1,46 @@
+<?xml version="1.0"?>
+<launch>
+	<arg name='enable_v2v' default='true'/>	
+
+	<arg name='role_name_1' default='hero1'/>
+	<arg name='role_name_2' default='hero2'/>
+
+	<arg name='map_frame' default='/map'/>	
+
+	<group ns="$(arg role_name_1)">
+		<node name="occmap_node" pkg="era_gazebo" type="occgrid_node" output="screen">
+			<rosparam file="$(find era_gazebo)/config/$(arg role_name_1)_costmap_2d.yaml" command="load" ns="costmap" />
+		</node>
+
+		<group if="$(arg enable_v2v)">
+    			<include file="$(find era_gazebo)/launch/v2v.launch">
+      				<arg name="robot_name" value="$(arg role_name_1)" />
+     				<arg name="local_ip" value="127.0.0.1" />
+     				<arg name="remote_ip" value="127.0.0.1" />
+      				<arg name="local_port" value="52001" />
+      				<arg name="remote_port" value="52002" />
+      				<arg name="robot_base_frame" value="$(arg role_name_1)" />
+      				<arg name="map_frame" value="$(arg map_frame)" />
+    			</include>
+  		</group>
+	</group>
+
+	<!-- <group ns="$(arg role_name_2)">
+		<node name="occmap_node" pkg="era_gazebo" type="occgrid_node" output="screen">
+			<rosparam file="$(find era_gazebo)/config/$(arg role_name_2)_costmap_2d.yaml" command="load" ns="costmap" />
+			<param name="robot_base_frame" value="hero2" />
+		</node>
+
+		<group if="$(arg enable_v2v)">
+    			<include file="$(find era_gazebo)/launch/v2v.launch">
+      				<arg name="robot_name" value="$(arg role_name_2)" />
+     				<arg name="local_ip" value="127.0.0.1" />
+     				<arg name="remote_ip" value="127.0.0.1" />
+      				<arg name="local_port" value="52002" />
+      				<arg name="remote_port" value="52001" />
+      				<arg name="robot_base_frame" value="$(arg role_name_2)" />
+      				<arg name="map_frame" value="$(arg map_frame)" />
+    			</include>
+  		</group>
+	</group> -->
+</launch>
